@@ -55,8 +55,23 @@ public class HeatMapUtil {
         }
     }
 
+    public static BufferedImage getHeatMap(float[][] matrix, int colors) {
+        return getHeatMap(matrix, colors, false);
+    }
     public static BufferedImage getHeatMap(double[][] matrix, int colors) {
         return getHeatMap(matrix, colors, false);
+    }
+
+    public static BufferedImage getHeatMap(float[][] matrix, int colors, boolean invert) {
+        float min = Float.MAX_VALUE;
+        float max = -Float.MAX_VALUE;
+        for (float[] ds : matrix) {
+            for (int i = 0; i < ds.length; i++) {
+                min = Math.min(ds[i], min);
+                max = Math.max(ds[i], max);
+            }
+        }
+        return invert ? getHeatMap(matrix, max, min, colors) : getHeatMap(matrix, min, max, colors);
     }
 
     public static BufferedImage getHeatMap(double[][] matrix, int colors, boolean invert) {
@@ -97,6 +112,38 @@ public class HeatMapUtil {
         BufferedImage bi = new BufferedImage(matrix[0].length, matrix.length, BufferedImage.TYPE_INT_RGB);
         for (int i = 0; i < matrix.length; i++) {
             double[] vec = matrix[i];
+            for (int j = 0; j < vec.length; j++) {
+                bi.setRGB(j, i, colorMap.get((int) (vec[j] * factor + offset)).getRGB());
+            }
+        }
+        return bi;
+    }
+    public static BufferedImage getHeatMap(float[][] matrix, float low, float high, int colors) {
+        List<Color> colorMap = null;
+        switch (colors) {
+            case 2:
+                colorMap = colorMap2;
+                break;
+            case 3:
+                colorMap = colorMap3;
+                break;
+            case 4:
+                colorMap = colorMap4;
+                break;
+            case 5:
+                colorMap = colorMap5;
+                break;
+            case 7:
+                colorMap = colorMap7;
+                break;
+            default:
+                throw new RuntimeException("unknown color count " + colors);
+        }
+        float factor = (colorMap.size() - 1) / (high - low);
+        float offset = 0.5f - low * factor;
+        BufferedImage bi = new BufferedImage(matrix[0].length, matrix.length, BufferedImage.TYPE_INT_RGB);
+        for (int i = 0; i < matrix.length; i++) {
+            float[] vec = matrix[i];
             for (int j = 0; j < vec.length; j++) {
                 bi.setRGB(j, i, colorMap.get((int) (vec[j] * factor + offset)).getRGB());
             }

@@ -253,7 +253,7 @@ public class ErrorModuleEnd2End implements IErrorModuleWithSegmentation {
     }
 
     @Override
-    public void calculateWithSegmentation(List<ILine> reco, List<ILine> ref) {
+    public void calculateWithSegmentation(List<? extends ILine> reco, List<? extends ILine> ref) {
         calculateWithSegmentation(reco, ref, false);
     }
 
@@ -268,7 +268,7 @@ public class ErrorModuleEnd2End implements IErrorModuleWithSegmentation {
     }
 
     @Override
-    public List<ILineComparison> calculateWithSegmentation(List<ILine> reco, List<ILine> ref, boolean calcLineComarison) {
+    public List<ILineComparison> calculateWithSegmentation(List<? extends ILine> reco, List<? extends ILine> ref, boolean calcLineComarison) {
         AlignmentTask lmr = new AlignmentTask(reco, ref, tokenizer, stringNormalizer, thresholdCouverage);
         return calculateIntern(lmr, sizeProcessViewer, fileDynProg, calcLineComarison);
     }
@@ -743,8 +743,11 @@ public class ErrorModuleEnd2End implements IErrorModuleWithSegmentation {
             filter.setAlignmentTask(alignmentTask);
         }
         pathCalculator.setUpdateScheme(PathCalculatorGraph.UpdateScheme.LAZY);
-        pathCalculator.setSizeProcessViewer(sizeProcessViewer);
-        pathCalculator.setFileDynMat(out);
+//        pathCalculator.setSizeProcessViewer(sizeProcessViewer);
+//        pathCalculator.setFileDynMat(out);
+        if (sizeProcessViewer > 0 || out != null) {
+            throw new RuntimeException("process viewer does not work any more.");
+        }
         PathCalculatorGraph.DistanceMat<String, String> mat = pathCalculator.calcDynProg(recos, refs);
 //        pathCalculator.calcBestPath(mat);
         List<PathCalculatorGraph.IDistance<String, String>> calcBestPath = pathCalculator.calcBestPath(mat);
@@ -942,12 +945,12 @@ public class ErrorModuleEnd2End implements IErrorModuleWithSegmentation {
 
             @Override
             public int getInnerRefIndex() {
-                return refInnerIndex<0?refInnerIndex:isWER?refInnerIndex/2:refInnerIndex;
+                return refInnerIndex < 0 ? refInnerIndex : isWER ? refInnerIndex / 2 : refInnerIndex;
             }
 
             @Override
             public int getInnerRecoIndex() {
-                return recoInnerIndex<0?recoInnerIndex:isWER?recoInnerIndex/2:recoInnerIndex;
+                return recoInnerIndex < 0 ? recoInnerIndex : isWER ? recoInnerIndex / 2 : recoInnerIndex;
             }
 
             @Override
@@ -956,11 +959,10 @@ public class ErrorModuleEnd2End implements IErrorModuleWithSegmentation {
             }
 
             @Override
-            public List<IPoint> getPath()
-            {
-                if(isWER){
+            public List<IPoint> getPath() {
+                if (isWER) {
                     LinkedList<IPoint> points = new LinkedList<>();
-                    for (int i = 0; i < path.size(); i+=2) {
+                    for (int i = 0; i < path.size(); i += 2) {
                         points.add(path.get(i));
                     }
                     return points;
@@ -970,7 +972,7 @@ public class ErrorModuleEnd2End implements IErrorModuleWithSegmentation {
 
             @Override
             public String toString() {
-                return String.format("[%2d:%2d]=>[%2d:%2d]: '%s'=>'%s' %s", getRecoIndex(), getInnerRecoIndex(),getRefIndex(), getInnerRefIndex(),  recoText == null ? "" : recoText, refText == null ? "" : refText, getPath());
+                return String.format("[%2d:%2d]=>[%2d:%2d]: '%s'=>'%s' %s", getRecoIndex(), getInnerRecoIndex(), getRefIndex(), getInnerRefIndex(), recoText == null ? "" : recoText, refText == null ? "" : refText, getPath());
             }
         };
 
@@ -1110,7 +1112,7 @@ public class ErrorModuleEnd2End implements IErrorModuleWithSegmentation {
                             }
                         });
                     }
-                    int i = pathBegin.getPoint()[1]-1;
+                    int i = pathBegin.getPoint()[1] - 1;
                     int refLineIdx = alignmentTask.getRefLineMap()[i - 1];
                     if (refLineIdx == -1) {
                         i++;
@@ -1147,7 +1149,7 @@ public class ErrorModuleEnd2End implements IErrorModuleWithSegmentation {
                             }
                         });
                     }
-                    int i = pathBegin.getPoint()[0]-1;
+                    int i = pathBegin.getPoint()[0] - 1;
                     int recoLineIdx = alignmentTask.getRecoLineMap()[i - 1];
                     if (recoLineIdx == -1) {
                         i++;

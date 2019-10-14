@@ -300,12 +300,12 @@ public class ErrorModuleBagOfTokens implements IErrorModuleWithSegmentation {
     }
 
     @Override
-    public void calculateWithSegmentation(List<ILine> reco, List<ILine> ref) {
+    public void calculateWithSegmentation(List<? extends ILine> reco, List<? extends ILine> ref) {
         calculateWithSegmentation(reco, ref, false);
     }
 
     @Override
-    public List<ILineComparison> calculateWithSegmentation(List<ILine> reco, List<ILine> ref, boolean calcLineComparison) {
+    public List<ILineComparison> calculateWithSegmentation(List<? extends ILine> reco, List<? extends ILine> ref, boolean calcLineComparison) {
         AlignmentTask alignmentTask = new AlignmentTask(reco, ref, tokenizer, stringNormalizer, 0.0);
         return calculateIntern(alignmentTask, calcLineComparison);
     }

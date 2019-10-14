@@ -25,12 +25,12 @@ public class ErrorModuleT2I implements IErrorModuleWithSegmentation {
     }
 
     @Override
-    public void calculateWithSegmentation(List<ILine> reco, List<ILine> ref) {
+    public void calculateWithSegmentation(List<? extends ILine> reco, List<? extends ILine> ref) {
         calculateWithSegmentation(reco, ref, true);
     }
 
     @Override
-    public List<ILineComparison> calculateWithSegmentation(List<ILine> reco, List<ILine> ref, boolean calcLineComparison) {
+    public List<ILineComparison> calculateWithSegmentation(List<? extends ILine> reco, List<? extends ILine> ref, boolean calcLineComparison) {
         List<ILineComparison> iLineComparisons = moduleCER.calculateWithSegmentation(ref, reco, true);
         hyp += reco.size();
         for (ILineComparison l : iLineComparisons) {

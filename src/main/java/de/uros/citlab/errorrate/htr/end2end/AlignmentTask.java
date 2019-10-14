@@ -114,11 +114,11 @@ public class AlignmentTask {
         this(recos.getFirst(), recos.getSecond(), refs.getFirst(), refs.getSecond(), adjazent);
     }
 
-    public AlignmentTask(List<ILine> reco, List<ILine> ref, ITokenizer wordTokenizer, IStringNormalizer sn, double thresholdCouverage) {
+    public AlignmentTask(List<? extends ILine> reco, List<? extends ILine> ref, ITokenizer wordTokenizer, IStringNormalizer sn, double thresholdCouverage) {
         this(reco, ref, wordTokenizer, sn, thresholdCouverage, false);
     }
 
-    public AlignmentTask(List<ILine> reco, List<ILine> ref, ITokenizer wordTokenizer, IStringNormalizer sn, double thresholdCouverage, boolean splitBOW) {
+    public AlignmentTask(List<? extends ILine> reco, List<? extends ILine> ref, ITokenizer wordTokenizer, IStringNormalizer sn, double thresholdCouverage, boolean splitBOW) {
         Polygon[] recos = new Polygon[reco.size()];
         Polygon[] refs = new Polygon[ref.size()];
         Boolean useFilter = null; //only use filter, if baselines are given everywhere
@@ -184,7 +184,7 @@ public class AlignmentTask {
         return refLineMap;
     }
 
-    private Pair<String[], int[]> getTokensAndLineIndex(List<ILine> lines, ITokenizer wordTokenizer, IStringNormalizer sn, boolean splitBOW) {
+    private Pair<String[], int[]> getTokensAndLineIndex(List<? extends ILine> lines, ITokenizer wordTokenizer, IStringNormalizer sn, boolean splitBOW) {
         LinkedList<String> tokens = new LinkedList<>();
         LinkedList<Integer> indexes = new LinkedList<>();
         tokens.add("\n");

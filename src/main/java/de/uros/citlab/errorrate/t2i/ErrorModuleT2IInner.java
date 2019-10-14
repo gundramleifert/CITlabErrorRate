@@ -175,7 +175,7 @@ class ErrorModuleT2IInner implements IErrorModuleWithSegmentation {
     }
 
     @Override
-    public void calculateWithSegmentation(List<ILine> reco, List<ILine> ref) {
+    public void calculateWithSegmentation(List<? extends ILine> reco, List<? extends ILine> ref) {
         calculateWithSegmentation(reco, ref, false);
     }
 
@@ -190,7 +190,7 @@ class ErrorModuleT2IInner implements IErrorModuleWithSegmentation {
     }
 
     @Override
-    public List<ILineComparison> calculateWithSegmentation(List<ILine> reco, List<ILine> ref, boolean calcLineComarison) {
+    public List<ILineComparison> calculateWithSegmentation(List<? extends ILine> reco, List<? extends ILine> ref, boolean calcLineComarison) {
         AlignmentTask lmr = new AlignmentTask(reco, ref, tokenizer, stringNormalizer, thresholdCouverage);
         return calculateIntern(lmr, sizeProcessViewer, fileDynProg, calcLineComarison);
     }
@@ -591,8 +591,11 @@ class ErrorModuleT2IInner implements IErrorModuleWithSegmentation {
             filter.setAlignmentTask(alignmentTask);
         }
         pathCalculator.setUpdateScheme(PathCalculatorGraph.UpdateScheme.LAZY);
-        pathCalculator.setSizeProcessViewer(sizeProcessViewer);
-        pathCalculator.setFileDynMat(out);
+//        pathCalculator.setSizeProcessViewer(sizeProcessViewer);
+//        pathCalculator.setFileDynMat(out);
+        if (sizeProcessViewer > 0 || out != null) {
+            throw new RuntimeException("process viewer does not work any more.");
+        }
         PathCalculatorGraph.DistanceMat<String, String> mat = pathCalculator.calcDynProg(recos, refs);
 //        pathCalculator.calcBestPath(mat);
         List<PathCalculatorGraph.IDistance<String, String>> calcBestPath = pathCalculator.calcBestPath(mat);

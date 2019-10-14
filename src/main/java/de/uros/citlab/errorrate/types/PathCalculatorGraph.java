@@ -5,22 +5,16 @@
  */
 package de.uros.citlab.errorrate.types;
 
-import de.uros.citlab.errorrate.util.HeatMapUtil;
 import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.procedure.TIntObjectProcedure;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
 import java.lang.reflect.Array;
 import java.util.*;
-import java.util.List;
 
 /**
  * @param <Reco>
@@ -30,13 +24,14 @@ import java.util.List;
 public class PathCalculatorGraph<Reco, Reference> {
 
     private UpdateScheme updateScheme = UpdateScheme.LAZY;
-    private int sizeProcessViewer = -1;
-    private File folderDynMats = null;
-    private boolean show = true;
+    //    private int sizeProcessViewer = -1;
+//    private File folderDynMats = null;
+//    private boolean show = true;
     private static final Logger LOG = LoggerFactory.getLogger(PathCalculatorGraph.class);
     private final List<ICostCalculator<Reco, Reference>> costCalculators = new ArrayList<>();
     private final List<ICostCalculatorMulti<Reco, Reference>> costCalculatorsMutli = new ArrayList<>();
     private PathFilter<Reco, Reference> filter = null;
+    private DynMatViewer dynMatViewer = null;
     private final Comparator<DistanceSmall> cmpCostsAcc = new Comparator<DistanceSmall>() {
         @Override
         public int compare(DistanceSmall o1, DistanceSmall o2) {
@@ -89,16 +84,28 @@ public class PathCalculatorGraph<Reco, Reference> {
         costCalculatorsMutli.add(costCalculator);
     }
 
-    public void setFileDynMat(File folderDynMats) {
-        this.folderDynMats = folderDynMats;
+//    public void setFileDynMat(File folderDynMats) {
+//        this.folderDynMats = folderDynMats;
+//    }
+
+//    public void setSizeProcessViewer(int useProgressBar) {
+//        this.sizeProcessViewer = useProgressBar;
+//    }
+
+    //    public void setShowDynMat(boolean show) {
+//        this.show = show;
+//    }
+    public interface DynMatViewer {
+
+        public boolean callbackEnd(float[][] mat);
+
+        public boolean callbackUpdate(double d, float[][] mat);
+
+        public int[] getSize(int[] actual);
     }
 
-    public void setSizeProcessViewer(int useProgressBar) {
-        this.sizeProcessViewer = useProgressBar;
-    }
-
-    public void setShowDynMat(boolean show) {
-        this.show = show;
+    public void setDynMatViewer(DynMatViewer dynMatViewer) {
+        this.dynMatViewer = dynMatViewer;
     }
 
     public void setFilter(PathFilter<Reco, Reference> filter) {
@@ -363,7 +370,7 @@ public class PathCalculatorGraph<Reco, Reference> {
                     LOG.trace("at " + posNew[0] + ";" + posNew[1] + " remove   " + distOld + " ignore " + distNew);
                 }
             }
-        }else{
+        } else {
             if (LOG.isTraceEnabled()) {
                 LOG.trace("at " + posNew[0] + ";" + posNew[1] + " leave    " + distOld + " skip   " + distNew);
             }
@@ -406,6 +413,7 @@ public class PathCalculatorGraph<Reco, Reference> {
         return calcDynProgInner(nativeReco, nativeRef, maxCount);
     }
 
+
     private DistanceMat<Reco, Reference> calcDynProgInner(Reco[] nativeReco, Reference[] nativeRef, int maxCount) {
 //        Reference[] nativeRef = (Reference[]) reco.toArray();
         DistanceMat<Reco, Reference> distMat = new DistanceMat<>(nativeReco.length, nativeRef.length);
@@ -428,12 +436,21 @@ public class PathCalculatorGraph<Reco, Reference> {
         QSortedCostAcc.add(start);
 //        G.add(start);
 //        distMat.set(startPoint, start);
-        ProcessField bar = sizeProcessViewer > 0 || folderDynMats != null ? new ProcessField("calculating Dynamic Matrix", sizeProcessViewer, folderDynMats, show) : null;
+//        ProcessField bar = sizeProcessViewer > 0 || folderDynMats != null ? new ProcessField("calculating Dynamic Matrix", sizeProcessViewer, folderDynMats, show) : null;
         int factorNextCleanup = 500000;
         int boundNextCleanup = factorNextCleanup;
         int cntEdges = 0;
         int cntVerticies = 0;
-//        int cntEdges = 0;
+        float factorY = 1;
+        float factorX = 1;
+        if (dynMatViewer != null) {
+            int[] size = dynMatViewer.getSize(new int[]{distMat.sizeY, distMat.sizeX});
+            factorX = Math.max(1, ((float) distMat.sizeX) / size[1]);
+            factorY = Math.max(1, ((float) distMat.sizeY) / size[0]);
+            if (mat == null) {
+                mat = new float[size[0]][size[1]];
+            }
+        }
         boolean[][] isdead = new boolean[distMat.sizeY][distMat.sizeX];
         final boolean log = LOG.isTraceEnabled();
         StopWatch swCalculators = log ? new StopWatch("calculators") : null;
@@ -442,8 +459,8 @@ public class PathCalculatorGraph<Reco, Reference> {
         while (!QSortedCostAcc.isEmpty()) {
             cntVerticies++;
             DistanceSmall distActual = QSortedCostAcc.pollFirst();
-            if(LOG.isTraceEnabled()){
-                LOG.trace("at " + distActual.point[0] + ";" + distActual.point[1] + " follow " + distActual );
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("at " + distActual.point[0] + ";" + distActual.point[1] + " follow " + distActual);
             }
             if (updateScheme.equals(UpdateScheme.LAZY) && distMat.getLastElement() == distActual) {
                 break;
@@ -457,15 +474,16 @@ public class PathCalculatorGraph<Reco, Reference> {
             if (filter != null && !filter.followPathsFromBestEdge(distActual)) {
                 if (log)
                     StopWatch.stop("FilterAllow");
-                if(LOG.isTraceEnabled()){
-                    LOG.trace("at " + distActual.point[0] + ";" + distActual.point[1] + " filter   " + distActual );
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("at " + distActual.point[0] + ";" + distActual.point[1] + " filter   " + distActual);
                 }
                 continue;
             }
             if (log) StopWatch.stop("FilterAllow");
             final int[] pos = distActual.point;
-            if (bar != null) {
-                bar.update(pos, distMat, distActual);
+            if (dynMatViewer != null) {
+                mat[(int) Math.min(pos[0] / factorY, mat.length - 1)][(int) Math.min(pos[1] / factorX, mat[0].length - 1)] = (float) distActual.costsAcc;
+                dynMatViewer.callbackUpdate(pos[1] / distMat.sizeX, mat);
             }
             //all Neighbours v of u
             for (ICostCalculator<Reco, Reference> costCalculator : costCalculators) {
@@ -524,18 +542,18 @@ public class PathCalculatorGraph<Reco, Reference> {
             LOG.trace("time spent: {}", swCleanup);
             LOG.trace("time spent: \n{}", StopWatch.getStats());
         }
-        if (bar != null) {
-            bar.update(null, distMat, null);
-            bar.setEnd();
-        }
         if (distMat.getLastElement() == null) {
             LOG.warn("no path found from start to end with given cost calulators");
         }
         if (LOG.isDebugEnabled()) {
             LOG.debug("caculate " + cntEdges + " edges for " + ((nativeReco.length - 1) * (nativeRef.length - 1)) + "/" + cntVerticies + " verticies");
         }
-        if (bar != null) {
-            bar.dispose();
+//        if (bar != null) {
+//            bar.dispose();
+//        }
+        if (dynMatViewer != null) {
+            dynMatViewer.callbackEnd(mat);
+            mat = null;
         }
         return distMat;
 
@@ -651,113 +669,115 @@ public class PathCalculatorGraph<Reco, Reference> {
 
     }
 
-    private static class ProcessField {
-        private JFrame mainFrame;
-        private JProgressBar progressBar;
-        private JLabel image;
-        private int size;
-        private boolean isDebug = false;
-        private double[][] mat = null;
-        private final int steps = 100;
-        private File outFile;
-        private boolean show;
+    //    private static class ProcessField {
+//        private JFrame mainFrame;
+//        private JProgressBar progressBar;
+//        private JLabel image;
+//        private int size;
+//        private boolean isDebug = false;
+    private float[][] mat = null;
+//        private final int steps = 100;
+//        private File outFile;
+//        private boolean show;
 
-        public ProcessField(String title, int sizeProcessViewer, File outFile, boolean show) {
-            this.size = sizeProcessViewer;
-            this.show = show;
-            this.outFile = outFile;
-            // JProgressBar-Objekt wird erzeugt
-            progressBar = new JProgressBar(0, steps);
+//        public ProcessField(String title, int sizeProcessViewer, File outFile, boolean show) {
+//            this.size = sizeProcessViewer;
+//            this.show = show;
+//            this.outFile = outFile;
+//            // JProgressBar-Objekt wird erzeugt
+//            progressBar = new JProgressBar(0, steps);
+//
+//            // Wert für den Ladebalken wird gesetzt
+//            progressBar.setValue(0);
+//            // Der aktuelle Wert wird als
+//            // Text in Prozent angezeigt
+//            progressBar.setStringPainted(true);
+//            if (show) {
+//                mainFrame = new JFrame();
+////        meinJFrame.setSize(size, size + 300);
+//                mainFrame.setTitle(title);
+//                Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+//                JPanel meinPanel = new JPanel();
+//                meinPanel.setLayout(new BoxLayout(meinPanel, BoxLayout.Y_AXIS));
+//
+//
+//                image = new JLabel();
+//                image.setIcon(new ImageIcon(HeatMapUtil.getHeatMap(new float[size][size], 7)));
+//                image.setAlignmentX(Component.CENTER_ALIGNMENT);
+//                progressBar.setAlignmentX(Component.CENTER_ALIGNMENT);
+//                meinPanel.add(image);
+//                // JProgressBar wird Panel hinzugefügt
+//                meinPanel.add(progressBar);
+//                mainFrame.add(meinPanel);
+//                if (size > 0) {
+//                    mainFrame.setLocation(new java.awt.Point((int) (screenSize.getWidth() - mainFrame.getWidth()) / 2, (int) (screenSize.getHeight() - mainFrame.getHeight()) / 2));
+//                    mainFrame.setVisible(true);
+//                    mainFrame.pack();
+//                }
+//            }
+//        }
 
-            // Wert für den Ladebalken wird gesetzt
-            progressBar.setValue(0);
-            // Der aktuelle Wert wird als
-            // Text in Prozent angezeigt
-            progressBar.setStringPainted(true);
-            if (show) {
-                mainFrame = new JFrame();
-//        meinJFrame.setSize(size, size + 300);
-                mainFrame.setTitle(title);
-                Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-                JPanel meinPanel = new JPanel();
-                meinPanel.setLayout(new BoxLayout(meinPanel, BoxLayout.Y_AXIS));
+//        private void setEnd() {
+//            progressBar.setValue(steps);
+//            if (outFile != null && mat != null) {
+//                HeatMapUtil.save(HeatMapUtil.getHeatMap(mat, 7), outFile);
+//            }
+//        }
 
+//        private void dispose() {
+//            if (show) {
+//                mainFrame.setVisible(false);
+//                mainFrame.dispose();
+//            }
+//
+//        }
 
-                image = new JLabel();
-                image.setIcon(new ImageIcon(HeatMapUtil.getHeatMap(new double[size][size], 7)));
-                image.setAlignmentX(Component.CENTER_ALIGNMENT);
-                progressBar.setAlignmentX(Component.CENTER_ALIGNMENT);
-                meinPanel.add(image);
-                // JProgressBar wird Panel hinzugefügt
-                meinPanel.add(progressBar);
-                mainFrame.add(meinPanel);
-                if (size > 0) {
-                    mainFrame.setLocation(new java.awt.Point((int) (screenSize.getWidth() - mainFrame.getWidth()) / 2, (int) (screenSize.getHeight() - mainFrame.getHeight()) / 2));
-                    mainFrame.setVisible(true);
-                    mainFrame.pack();
+    MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
+
+    void update(int[] size, int[] pos, DistanceMat distMat, DistanceSmall actual, DynMatViewer viewer) {
+        int[] size1 = viewer.getSize(size);
+        int sizeX = size1[1];
+        int sizeY = size1[0];
+//            int newProcess = pos == null ? steps : (int) Math.round(((double) pos[1] / sizeX * steps));
+//            if (progressBar.getValue() < newProcess || isDebug || pos == null) {
+        int mb = (1024 * 1024);
+        MemoryUsage heapMemoryUsage = memoryMXBean.getHeapMemoryUsage();
+        LOG.trace("memory usage: {}/{} = {}%", heapMemoryUsage.getUsed() / mb, heapMemoryUsage.getMax() / mb, heapMemoryUsage.getUsed() * 100 / heapMemoryUsage.getMax());
+//                progressBar.setValue(newProcess);
+        int factorX = Math.max(1, sizeX / size[1]);
+        int factorY = Math.max(1, sizeY / size[0]);
+        if (mat == null) {
+            mat = new float[sizeY / factorY][sizeX / factorX];
+        }
+        for (int i = 0; i < mat.length; i++) {
+            float[] vec = mat[i];
+            for (int j = 0; j < vec.length; j++) {
+                DistanceSmall dist = distMat.get(i * factorY, j * factorX);
+                if (dist == null) {
+                    vec[j] = vec[j] > 0 ? vec[j] : -5;
+                } else {
+                    vec[j] = (float) (vec[j] > 0 ? Math.min(dist.costsAcc, vec[j]) : dist.costsAcc);
                 }
-            }
-        }
-
-        private void setEnd() {
-            progressBar.setValue(steps);
-            if (outFile != null && mat != null) {
-                HeatMapUtil.save(HeatMapUtil.getHeatMap(mat, 7), outFile);
-            }
-        }
-
-        private void dispose() {
-            if (show) {
-                mainFrame.setVisible(false);
-                mainFrame.dispose();
-            }
-
-        }
-
-        MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
-
-        void update(int[] pos, DistanceMat distMat, DistanceSmall actual) {
-            int sizeX = isDebug ? size : distMat.getSizeX();
-            int sizeY = isDebug ? size : distMat.getSizeY();
-            int newProcess = pos == null ? steps : (int) Math.round(((double) pos[1] / sizeX * steps));
-            if (progressBar.getValue() < newProcess || isDebug || pos == null) {
-                int mb = (1024 * 1024);
-                MemoryUsage heapMemoryUsage = memoryMXBean.getHeapMemoryUsage();
-                LOG.trace("memory usage: {}/{} = {}%", heapMemoryUsage.getUsed() / mb, heapMemoryUsage.getMax() / mb, heapMemoryUsage.getUsed() * 100 / heapMemoryUsage.getMax());
-                progressBar.setValue(newProcess);
-                int factorX = Math.max(1, sizeX / size);
-                int factorY = Math.max(1, sizeY / size);
-                if (mat == null) {
-                    mat = new double[sizeY / factorY][sizeX / factorX];
-                }
-                for (int i = 0; i < mat.length; i++) {
-                    double[] vec = mat[i];
-                    for (int j = 0; j < vec.length; j++) {
-                        DistanceSmall dist = distMat.get(i * factorY, j * factorX);
-                        if (dist == null) {
-                            vec[j] = vec[j] > 0 ? vec[j] : isDebug ? -5 : 0;
-                        } else {
-                            vec[j] = vec[j] > 0 ? Math.min(dist.costsAcc, vec[j]) : dist.costsAcc;
-                        }
 //                        vec[j] = dist == null ? isDebug ? -5 : 0 : dist.getCostsAcc();
-                    }
-                }
-                if (show) {
-                    BufferedImage heatMap = HeatMapUtil.getHeatMap(mat, 7);
-                    image.setIcon(new ImageIcon(heatMap));
-                    mainFrame.invalidate();
-                    mainFrame.revalidate();
-                    mainFrame.repaint();
-                }
-//                System.out.println("done");
             }
-
         }
-
-        public BufferedImage getImage() {
-            return HeatMapUtil.getHeatMap(mat, 7);
-        }
+//        viewer.use(mat);
+//                if (show) {
+//                    BufferedImage heatMap = HeatMapUtil.getHeatMap(mat, 7);
+//                    image.setIcon(new ImageIcon(heatMap));
+//                    mainFrame.invalidate();
+//                    mainFrame.revalidate();
+//                    mainFrame.repaint();
+//                }
+//                System.out.println("done");
+//            }
 
     }
+
+//        public BufferedImage getImage() {
+//            return HeatMapUtil.getHeatMap(mat, 7);
+//        }
+
+//    }
 
 }

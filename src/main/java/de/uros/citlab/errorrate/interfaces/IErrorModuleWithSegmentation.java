@@ -13,7 +13,7 @@ public interface IErrorModuleWithSegmentation extends IErrorModule {
      * @param reco recognistion/hypothesis (empty List possible)
      * @param ref  reference/ground truth (empty List possible)
      */
-    void calculateWithSegmentation(List<ILine> reco, List<ILine> ref);
+    void calculateWithSegmentation(List<? extends ILine> reco, List<? extends ILine> ref);
 
     /**
      * @param reco               recognistion/hypothesis (empty List possible)
@@ -21,7 +21,7 @@ public interface IErrorModuleWithSegmentation extends IErrorModule {
      * @param calcLineComparison if line comparations should be calculated
      * @return null, if calcLineComparison=false, otherwise result structure
      */
-    List<ILineComparison> calculateWithSegmentation(List<ILine> reco, List<ILine> ref, boolean calcLineComparison);
+    List<ILineComparison> calculateWithSegmentation(List<? extends ILine> reco, List<? extends ILine> ref, boolean calcLineComparison);
 
     /**
      * @param reco               recognistion/hypothesis (multiply lines separated by \n)
