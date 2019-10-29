@@ -19,7 +19,7 @@ class CCWordInsLine extends CCAbstract {
             while (xend < isLineBreakRef.length) {
                 if (isLineBreakRef[xend]) {
                     //-1 because \n does not have to be count
-                    return new PathCalculatorGraph.DistanceSmall(point, new int[]{y, xend}, dist.costsAcc + cnt * offsetIns + offsetRecoJump, this);
+                    return new PathCalculatorGraph.DistanceSmall(point, new int[]{y, xend}, dist.costsAcc + cnt, this);
                 }
                 if (!isSpaceRef[xend]) {
                     cnt++;//do not count spaces
@@ -43,7 +43,7 @@ class CCWordInsLine extends CCAbstract {
                 //-1 because \n does not have to be count
                 return new DistanceStrStr(
                         DistanceStrStr.TYPE.INS_LINE,
-                        cnt * offsetIns + offsetRecoJump,
+                        cnt,
                         dist.costsAcc,
                         null,
                         sub.toArray(new String[0]),

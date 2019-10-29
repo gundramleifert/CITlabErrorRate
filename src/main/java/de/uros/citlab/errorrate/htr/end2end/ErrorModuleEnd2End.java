@@ -44,8 +44,8 @@ public class ErrorModuleEnd2End implements IErrorModuleWithSegmentation {
     private double filterOffset = 100;
     private final Voter voter = new Voter();
     private static final Logger LOG = LoggerFactory.getLogger(ErrorModuleEnd2End.class);
-    private int sizeProcessViewer = -1;
-    private File fileDynProg = null;
+    //    private int sizeProcessViewer = -1;
+//    private File fileDynProg = null;
     private PathFilterBaselineMatch filter = null;
     //    private boolean usePolygons;
     private final boolean restrictReadingOrder;
@@ -205,23 +205,23 @@ public class ErrorModuleEnd2End implements IErrorModuleWithSegmentation {
         this.thresholdCouverage = thresholdCouverage;
     }
 
-    /**
-     * show dynamic programming heat map
-     *
-     * @param sizeImage -1 = off, >0 size of image
-     */
-    public void setSizeProcessViewer(int sizeImage) {
-        sizeProcessViewer = sizeImage;
-    }
+//    /**
+//     * show dynamic programming heat map
+//     *
+//     * @param sizeImage -1 = off, >0 size of image
+//     */
+//    public void setSizeProcessViewer(int sizeImage) {
+//        sizeProcessViewer = sizeImage;
+//    }
 
-    /**
-     * if heat map of dynamic programming should be saved
-     *
-     * @param file output dir (for subproblems an "_" is appended)
-     */
-    public void setFileDynProg(File file) {
-        fileDynProg = file;
-    }
+//    /**
+//     * if heat map of dynamic programming should be saved
+//     *
+//     * @param file output dir (for subproblems an "_" is appended)
+//     */
+//    public void setFileDynProg(File file) {
+//        fileDynProg = file;
+//    }
 
     /**
      * @param countManipulations
@@ -270,7 +270,7 @@ public class ErrorModuleEnd2End implements IErrorModuleWithSegmentation {
     @Override
     public List<ILineComparison> calculateWithSegmentation(List<? extends ILine> reco, List<? extends ILine> ref, boolean calcLineComarison) {
         AlignmentTask lmr = new AlignmentTask(reco, ref, tokenizer, stringNormalizer, thresholdCouverage);
-        return calculateIntern(lmr, sizeProcessViewer, fileDynProg, calcLineComarison);
+        return calculateIntern(lmr, null, calcLineComarison);
     }
 
     /**
@@ -298,7 +298,7 @@ public class ErrorModuleEnd2End implements IErrorModuleWithSegmentation {
         String[] recos = getExpandedTokenization(reco);
         String[] refs = getExpandedTokenization(ref);
         AlignmentTask result = new AlignmentTask(recos, refs, isBOW ? ((WordTokenizerAddSpaceGap) tokenizer).getWordTokenizer() : null);
-        return calculateIntern(result, sizeProcessViewer, fileDynProg, calcLineComparison);
+        return calculateIntern(result, null, calcLineComparison);
     }
 
     private String[] getExpandedTokenization(String string) {
@@ -315,8 +315,8 @@ public class ErrorModuleEnd2End implements IErrorModuleWithSegmentation {
         return res.toArray(new String[0]);
     }
 
-    private List<ILineComparison> calculateIntern(AlignmentTask alignmentTask, int sizeProcessViewer, File out, boolean calcLineComparison) {
-        PathCountResult pathCountResult = getPathCountResult(alignmentTask, sizeProcessViewer, out, calcLineComparison);
+    private List<ILineComparison> calculateIntern(AlignmentTask alignmentTask, PathCalculatorGraph.DynMatViewer viewer, boolean calcLineComparison) {
+        PathCountResult pathCountResult = getPathCountResult(alignmentTask, null, calcLineComparison);
         ObjectCounter<Count> countActual = pathCountResult.getCounter();
         counter.addAll(countActual);
         if (pathCountResult.getSubstitutions() != null) {
@@ -706,7 +706,7 @@ public class ErrorModuleEnd2End implements IErrorModuleWithSegmentation {
         return idx - 1;
     }
 
-    private PathCountResult getPathCountResult(AlignmentTask alignmentTask, int sizeProcessViewer, File out, boolean calcLineComparison) {
+    private PathCountResult getPathCountResult(AlignmentTask alignmentTask, PathCalculatorGraph.DynMatViewer viewer, boolean calcLineComparison) {
         //use dynamic programming to calculateIntern the cheapest path through the dynamic programming tabular
 //        calcBestPathFast(recos, refs);
         String[] recos = alignmentTask.getRecos();
@@ -745,9 +745,9 @@ public class ErrorModuleEnd2End implements IErrorModuleWithSegmentation {
         pathCalculator.setUpdateScheme(PathCalculatorGraph.UpdateScheme.LAZY);
 //        pathCalculator.setSizeProcessViewer(sizeProcessViewer);
 //        pathCalculator.setFileDynMat(out);
-        if (sizeProcessViewer > 0 || out != null) {
-            throw new RuntimeException("process viewer does not work any more.");
-        }
+//        if (sizeProcessViewer > 0 || out != null) {
+//            throw new RuntimeException("process viewer does not work any more.");
+//        }
         PathCalculatorGraph.DistanceMat<String, String> mat = pathCalculator.calcDynProg(recos, refs);
 //        pathCalculator.calcBestPath(mat);
         List<PathCalculatorGraph.IDistance<String, String>> calcBestPath = pathCalculator.calcBestPath(mat);
@@ -771,12 +771,12 @@ public class ErrorModuleEnd2End implements IErrorModuleWithSegmentation {
         boolean[] maskRef = pathCountResult.maskRef;
         if (grouping.isEmpty() || pathCountResult.getCounter().isEmpty()) {
             File outSubProblem = null;
-            if (out != null) {
-                String path = out.getPath();
-                path = path.substring(0, path.lastIndexOf(".")) + "_" + path.substring(path.lastIndexOf("."));
-                outSubProblem = new File(path);
-            }
-            pathCountResult.addAll(getPathCountResultFallback(alignmentTask, sizeProcessViewer, outSubProblem, calcLineComparison));
+//            if (out != null) {
+//                String path = out.getPath();
+//                path = path.substring(0, path.lastIndexOf(".")) + "_" + path.substring(path.lastIndexOf("."));
+//                outSubProblem = new File(path);
+//            }
+            pathCountResult.addAll(getPathCountResultFallback(alignmentTask, viewer, calcLineComparison));
             return pathCountResult;
         }
         Pair<String[], int[]> refSubProblemTranscription = getSubProblemTranscription(refs, maskRef, alignmentTask.getRefLineMap());
@@ -798,7 +798,7 @@ public class ErrorModuleEnd2End implements IErrorModuleWithSegmentation {
                                 getInnerIndex(recoSubProblemTranscription.getSecond(), i, recoLineIdx),
                                 -1,
                                 s,
-                                null,
+                                "",
                                 Arrays.asList(new Point(Manipulation.DEL, s, null))
                         )
                 );
@@ -851,22 +851,22 @@ public class ErrorModuleEnd2End implements IErrorModuleWithSegmentation {
             }
         }
 
-        pathCountResult.addAll(getPathCountResult(subProblem, sizeProcessViewer, out, calcLineComparison));
+        pathCountResult.addAll(getPathCountResult(subProblem, viewer, calcLineComparison));
         return pathCountResult;
     }
 
-    private PathCountResult getPathCountResultFallback(AlignmentTask alignmentTask, int sizeProcessViewer, File out, boolean calcLineComparison) {
+    private PathCountResult getPathCountResultFallback(AlignmentTask alignmentTask, PathCalculatorGraph.DynMatViewer viewer, boolean calcLineComparison) {
         if (restrictReadingOrder) {
             throw new RuntimeException("fallback only possible when mode was without reading order");
         }
         ErrorModuleEnd2End fallback = new ErrorModuleEnd2End(true, restrictGeometry, allowSegmentationErrors, isWER ? tokenizer : null);
         File outSubProblem = null;
-        if (out != null) {
-            String path = out.getPath();
-            path = path.substring(0, path.lastIndexOf(".")) + "_" + path.substring(path.lastIndexOf("."));
-            outSubProblem = new File(path);
-        }
-        return fallback.getPathCountResult(alignmentTask, sizeProcessViewer, outSubProblem, calcLineComparison);
+//        if (out != null) {
+//            String path = out.getPath();
+//            path = path.substring(0, path.lastIndexOf(".")) + "_" + path.substring(path.lastIndexOf("."));
+//            outSubProblem = new File(path);
+//        }
+        return fallback.getPathCountResult(alignmentTask, null, calcLineComparison);
 
     }
 

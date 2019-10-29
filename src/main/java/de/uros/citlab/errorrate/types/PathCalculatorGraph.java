@@ -523,6 +523,10 @@ public class PathCalculatorGraph<Reco, Reference> {
                     swHandle.stop();
             }
             if (maxCount > 0 && cntVerticies >= maxCount) {
+                if(dynMatViewer!=null){
+                    dynMatViewer.callbackEnd(mat);
+                    mat=null;
+                }
                 LOG.debug(String.format("found count = %d, return with so far calculated dynProg.", cntEdges));
                 return distMat;
             }

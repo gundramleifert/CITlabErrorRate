@@ -4,7 +4,7 @@ import de.uros.citlab.errorrate.types.PathCalculatorGraph;
 
 import java.util.Arrays;
 
-class CCDelLine extends CCAbstract {
+public class CCDelLine extends CCAbstract {
     private boolean countSpaces;
 
     public CCDelLine(Voter voter, boolean countSpaces) {
@@ -22,7 +22,7 @@ class CCDelLine extends CCAbstract {
             while (yend < isLineBreakReco.length) {
                 if (isLineBreakReco[yend]) {
                     //-1 because \n does not have to be count
-                    return new PathCalculatorGraph.DistanceSmall(point, new int[]{yend, x}, dist.costsAcc + cntErrors * offsetDel, this);
+                    return new PathCalculatorGraph.DistanceSmall(point, new int[]{yend, x}, dist.costsAcc + cntErrors, this);
                 }
                 //do not count spaces if any segmentation is allowed or mode is WER
                 if (countSpaces || !isSpaceReco[yend]) {
@@ -62,7 +62,7 @@ class CCDelLine extends CCAbstract {
             if (isLineBreakReco[yend]) {
                 return new DistanceStrStr(
                         DistanceStrStr.TYPE.DEL_LINE,
-                        cntErrors * offsetDel,
+                        cntErrors,
                         dist.costsAcc,
                         subList,
                         null,

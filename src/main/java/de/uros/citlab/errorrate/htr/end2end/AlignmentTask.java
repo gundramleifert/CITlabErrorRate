@@ -19,6 +19,24 @@ public class AlignmentTask {
     private final String[] refs;
     private final boolean useFilter;
 
+//    public int[] getMaxPrec() {
+//        int cnt = 0;
+//        int cntAll = 0;
+//        for (int recoIdx = 0; recoIdx < recos.length; recoIdx++) {
+//            for (int refIdx = 0; refIdx < refs.length; refIdx++) {
+//                if(adjazent.length<recoIdx||adjazent[0].length<refIdx){
+//                    System.out.println("stop");
+//                }
+//                if (adjazent[recoIdx][refIdx]) {
+//                    cnt += recos[recoIdx].length();
+//                    break;
+//                }
+//            }
+//            cntAll += recos[recoIdx].length();
+//        }
+//        return new int[]{cnt, cntAll};
+//    }
+
     public String[] getRecos() {
         return recos;
     }
