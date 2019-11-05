@@ -1,7 +1,9 @@
 
 # Changelog
 
-# 5.2.1
+# 5.3.0
+* new implementation of ErrorRateT2I
+* new debug-possibility of GraphCalculator by tracing the DynProg matrix
 
 # 5.2.0
 * feature: add Text-to-Image measure

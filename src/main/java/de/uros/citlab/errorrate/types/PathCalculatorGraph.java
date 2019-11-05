@@ -523,9 +523,9 @@ public class PathCalculatorGraph<Reco, Reference> {
                     swHandle.stop();
             }
             if (maxCount > 0 && cntVerticies >= maxCount) {
-                if(dynMatViewer!=null){
+                if (dynMatViewer != null) {
                     dynMatViewer.callbackEnd(mat);
-                    mat=null;
+                    mat = null;
                 }
                 LOG.debug(String.format("found count = %d, return with so far calculated dynProg.", cntEdges));
                 return distMat;
@@ -556,6 +556,29 @@ public class PathCalculatorGraph<Reco, Reference> {
 //            bar.dispose();
 //        }
         if (dynMatViewer != null) {
+            //print best path
+            if (distMat.getLastElement() != null) {
+                double min = mat[0][0];
+                double max = mat[0][0];
+                for (float[] floats : mat) {
+                    for (float aFloat : floats) {
+                        min = Math.min(min, aFloat);
+                        max = Math.max(max, aFloat);
+                    }
+                }
+                double diff = max - min;
+                for (IDistance<Reco, Reference> dist : distMat.getBestPath()) {
+                    int idxY=(int)Math.min(dist.getPoint()[0] / factorY, mat.length - 1);
+                    int idxX=(int)Math.min(dist.getPoint()[1] / factorX, mat[0].length - 1);
+
+                    float val = mat[idxY][idxX];
+                    val += diff * 0.5F;
+                    if (val > max) {
+                        val -= diff;
+                    }
+                    mat[idxY][idxX] = val;
+                }
+            }
             dynMatViewer.callbackEnd(mat);
             mat = null;
         }
