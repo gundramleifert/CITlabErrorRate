@@ -5,11 +5,12 @@
  */
 package de.uros.citlab.errorrate.kws;
 
+import de.uros.citlab.errorrate.interfaces.ILine;
 import de.uros.citlab.errorrate.types.KWS;
+import de.uros.citlab.errorrate.util.ExtractUtil;
 import de.uros.citlab.errorrate.util.PolygonUtil;
-import eu.transkribus.interfaces.ITokenizer;
-import eu.transkribus.languageresources.extractor.pagexml.PAGEXMLExtractor;
-import eu.transkribus.languageresources.extractor.xml.XMLExtractor;
+import de.uros.citlab.tokenizer.interfaces.ITokenizer;
+
 import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -110,17 +111,17 @@ public class KeywordExtractor {
     }
 
     public KWS.Page getKeywordsFromFile(File file, String pageID, ITokenizer tokenizer) {
-        List<XMLExtractor.Line> lines = PAGEXMLExtractor.getLinesFromFile(file);
+        List<ILine> lines = ExtractUtil.getLinesFromFile(file.getPath());
         KWS.Page page = new KWS.Page(pageID != null ? pageID : "");
-        for (XMLExtractor.Line line : lines) {
-            KWS.Line kwsLine = new KWS.Line(line.baseLine);
+        for (ILine line : lines) {
+            KWS.Line kwsLine = new KWS.Line(line.getBaseline());
             page.addLine(kwsLine);
-            String textline = upper ? line.textEquiv.toUpperCase() : line.textEquiv;
+            String textline = upper ? line.getText().toUpperCase() : line.getText();
             Set<String> tokenize = new HashSet<>(tokenizer.tokenize(textline));
             for (String keyword : tokenize) {
                 double[][] keywordPosition = getKeywordPosition(keyword, textline);
                 for (double[] ds : keywordPosition) {
-                    kwsLine.addKeyword(keyword, PolygonUtil.getPolygonPart(line.baseLine, ds[0], ds[1]));
+                    kwsLine.addKeyword(keyword, PolygonUtil.getPolygonPart(line.getBaseline(), ds[0], ds[1]));
                 }
             }
         }
@@ -128,16 +129,16 @@ public class KeywordExtractor {
     }
 
     public KWS.Page getKeywordsFromFile(File file, String pageID, List<String> keywords) {
-        List<XMLExtractor.Line> lines = PAGEXMLExtractor.getLinesFromFile(file);
+        List<ILine> lines = ExtractUtil.getLinesFromFile(file.getPath());
         KWS.Page page = new KWS.Page(pageID != null ? pageID : "");
-        for (XMLExtractor.Line line : lines) {
-            KWS.Line kwsLine = new KWS.Line(line.baseLine);
+        for (ILine line : lines) {
+            KWS.Line kwsLine = new KWS.Line(line.getBaseline());
             page.addLine(kwsLine);
             for (String keyword : keywords) {
-                String textline = upper ? line.textEquiv.toUpperCase() : line.textEquiv;
+                String textline = upper ? line.getText().toUpperCase() : line.getText();
                 double[][] keywordPosition = getKeywordPosition(keyword, textline);
                 for (double[] ds : keywordPosition) {
-                    kwsLine.addKeyword(keyword, PolygonUtil.getPolygonPart(line.baseLine, ds[0], ds[1]));
+                    kwsLine.addKeyword(keyword, PolygonUtil.getPolygonPart(line.getBaseline(), ds[0], ds[1]));
                 }
             }
         }

@@ -5,7 +5,7 @@
  */
 package de.uros.citlab.errorrate.normalizer;
 
-import eu.transkribus.interfaces.IStringNormalizer;
+import de.uros.citlab.errorrate.interfaces.IStringNormalizer;
 import de.uros.citlab.tokenizer.categorizer.CategorizerWordDft;
 import de.uros.citlab.tokenizer.interfaces.ICategorizer;
 import org.slf4j.Logger;

@@ -8,18 +8,18 @@ package de.uros.citlab.errorrate;
 import de.uros.citlab.errorrate.htr.ErrorModuleBagOfTokens;
 import de.uros.citlab.errorrate.htr.ErrorModuleDynProg;
 import de.uros.citlab.errorrate.interfaces.IErrorModule;
+import de.uros.citlab.errorrate.interfaces.IStringNormalizer;
 import de.uros.citlab.errorrate.normalizer.StringNormalizerDftConfigurable;
 import de.uros.citlab.errorrate.normalizer.StringNormalizerLetterNumber;
 import de.uros.citlab.errorrate.types.Count;
 import de.uros.citlab.errorrate.types.Method;
 import de.uros.citlab.errorrate.types.Metric;
 import de.uros.citlab.errorrate.types.Result;
+import de.uros.citlab.errorrate.util.PageXmlUtils;
 import de.uros.citlab.tokenizer.TokenizerCategorizer;
 import de.uros.citlab.tokenizer.categorizer.CategorizerCharacterConfigurable;
 import de.uros.citlab.tokenizer.categorizer.CategorizerWordDftConfigurable;
 import de.uros.citlab.tokenizer.interfaces.ICategorizer;
-import eu.transkribus.interfaces.IStringNormalizer;
-import eu.transkribus.languageresources.extractor.pagexml.PAGEXMLExtractor;
 import org.apache.commons.cli.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.math3.util.Pair;
@@ -167,7 +167,7 @@ public class HtrError {
                 String reco = recos.get(i);
                 String ref = refs.get(i);
                 LOG.log(Level.FINE, "process [{0}/{1}]:{2} <> {3}", new Object[]{i + 1, recos.size(), reco, ref});
-                List<Pair<String, String>> recoRefList = new PAGEXMLExtractor().extractTextFromFilePairwise(reco, ref);
+                List<Pair<String, String>> recoRefList = PageXmlUtils.extractTextFromFilePairwise(reco, ref);
                 //calculate error rates in ErrorModule
                 for (Pair<String, String> recoRef : recoRefList) {
                     LOG.log(Level.FINE, "reco: ''{0}''", recoRef.getFirst());

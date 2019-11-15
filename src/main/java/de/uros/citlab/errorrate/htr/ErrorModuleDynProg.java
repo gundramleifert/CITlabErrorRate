@@ -6,13 +6,13 @@
 package de.uros.citlab.errorrate.htr;
 
 import de.uros.citlab.errorrate.interfaces.IErrorModule;
+import de.uros.citlab.errorrate.interfaces.IStringNormalizer;
 import de.uros.citlab.errorrate.types.Count;
 import de.uros.citlab.errorrate.types.PathCalculatorGraph;
 import de.uros.citlab.errorrate.util.ObjectCounter;
 import de.uros.citlab.tokenizer.TokenizerCategorizer;
 import de.uros.citlab.tokenizer.interfaces.ICategorizer;
-import eu.transkribus.interfaces.IStringNormalizer;
-import eu.transkribus.interfaces.ITokenizer;
+import de.uros.citlab.tokenizer.interfaces.ITokenizer;
 import org.apache.commons.math3.util.Pair;
 
 import java.awt.*;

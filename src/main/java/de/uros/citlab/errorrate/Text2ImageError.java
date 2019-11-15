@@ -9,16 +9,17 @@ import de.uros.citlab.errorrate.aligner.BaseLineAligner;
 import de.uros.citlab.errorrate.aligner.IBaseLineAligner;
 import de.uros.citlab.errorrate.htr.ErrorModuleDynProg;
 import de.uros.citlab.errorrate.interfaces.IErrorModule;
+import de.uros.citlab.errorrate.interfaces.ILine;
+import de.uros.citlab.errorrate.interfaces.IStringNormalizer;
 import de.uros.citlab.errorrate.normalizer.StringNormalizerDftConfigurable;
 import de.uros.citlab.errorrate.normalizer.StringNormalizerLetterNumber;
 import de.uros.citlab.errorrate.types.Count;
+import de.uros.citlab.errorrate.util.ExtractUtil;
 import de.uros.citlab.tokenizer.categorizer.CategorizerCharacterConfigurable;
 import de.uros.citlab.tokenizer.categorizer.CategorizerCharacterDft;
 import de.uros.citlab.tokenizer.categorizer.CategorizerWordDftConfigurable;
 import de.uros.citlab.tokenizer.categorizer.CategorizerWordMergeGroups;
 import de.uros.citlab.tokenizer.interfaces.ICategorizer;
-import eu.transkribus.interfaces.IStringNormalizer;
-import eu.transkribus.languageresources.extractor.xml.XMLExtractor;
 import org.apache.commons.cli.*;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
@@ -202,11 +203,11 @@ public class Text2ImageError {
                 String reco = recos.get(i);
                 String ref = refs.get(i);
                 LOG.debug("process [{}/{}]:{} <> {}", i + 1, recos.size(), reco, ref);
-                List<XMLExtractor.Line> linesGT = XMLExtractor.getLinesFromFile(new File(ref));
-                List<XMLExtractor.Line> linesLA = XMLExtractor.getLinesFromFile(new File(reco));
-                List<XMLExtractor.Line> linesHyp = new LinkedList<>();
-                for (XMLExtractor.Line line : linesLA) {
-                    if (line.textEquiv != null) {
+                List<ILine> linesGT = ExtractUtil.getLinesFromFile(new File(ref));
+                List<ILine> linesLA = ExtractUtil.getLinesFromFile(new File(reco));
+                List<ILine> linesHyp = new LinkedList<>();
+                for (ILine line : linesLA) {
+                    if (line.getText() != null) {
                         linesHyp.add(line);
                     }
                 }
@@ -217,7 +218,7 @@ public class Text2ImageError {
                 // The array can have length 0-#GT-lines
                 for (int j = 0; j < precAlignment.length; j++) {
                     int[] idsGT = precAlignment[j];
-                    String textHyp = linesHyp.get(j).textEquiv;
+                    String textHyp = linesHyp.get(j).getText();
                     String gtText = null;
                     //create GT-String from 0, 1 or arbitrary many strings
                     switch (idsGT.length) {
@@ -225,13 +226,13 @@ public class Text2ImageError {
                             gtText = "";
                             break;
                         case 1:
-                            gtText = linesGT.get(idsGT[0]).textEquiv;
+                            gtText = linesGT.get(idsGT[0]).getText();
                             break;
                         default: {
                             StringBuilder sb = new StringBuilder();
-                            sb.append(linesGT.get(idsGT[0]).textEquiv);
+                            sb.append(linesGT.get(idsGT[0]).getText());
                             for (int k = 1; k < linesGT.size(); k++) {
-                                sb.append(' ').append(linesGT.get(idsGT[k]).textEquiv);
+                                sb.append(' ').append(linesGT.get(idsGT[k]).getText());
                             }
                             gtText = sb.toString();
                         }
@@ -246,10 +247,10 @@ public class Text2ImageError {
                 //calculate couverage of GT-lines by HYP-lines. If the HYP couver all GT-lines, sumCur=sumAllCur
                 double[] recValue = alignment.getRecallsLA();
                 for (int j = 0; j < recValue.length; j++) {
-                    sumCur += linesGT.get(j).textEquiv.length() * recValue[j];
+                    sumCur += linesGT.get(j).getText().length() * recValue[j];
                 }
-                for (XMLExtractor.Line line : linesGT) {
-                    sumAllCur += line.textEquiv.length();
+                for (ILine line : linesGT) {
+                    sumAllCur += line.getText().length();
                 }
                 emErrCur = errorModule.getCounter().get(Count.ERR);
                 emGtCur = errorModule.getCounter().get(Count.GT);
@@ -267,9 +268,9 @@ public class Text2ImageError {
                 cntLinesErr += cntLinesCorErr;
                 cntLinesGt += cntLinesGtCur;
             }
-            if(LOG.isDebugEnabled()){
-                LOG.debug("sum = {} sumAll = {} emErr = {} emGT = {} emHyp = {}", sum,sumAll,emErr,emGt,emHyp);
-                LOG.debug("lines: err = {} sum = {}", cntLinesErr,cntLinesGt);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("sum = {} sumAll = {} emErr = {} emGT = {} emHyp = {}", sum, sumAll, emErr, emGt, emHyp);
+                LOG.debug("lines: err = {} sum = {}", cntLinesErr, cntLinesGt);
             }
             HashMap res = new HashMap();
             res.put("P_text", 1.0 - emErr / emGt);
@@ -285,10 +286,10 @@ public class Text2ImageError {
 
     }
 
-    private static Polygon[] toArray(List<XMLExtractor.Line> lines) {
+    private static Polygon[] toArray(List<ILine> lines) {
         Polygon[] res = new Polygon[lines.size()];
         for (int i = 0; i < lines.size(); i++) {
-            res[i] = lines.get(i).baseLine;
+            res[i] = lines.get(i).getBaseline();
         }
         return res;
     }

@@ -8,13 +8,13 @@
 
     <groupId>de.uros.citlab</groupId>
     <artifactId>errorrate</artifactId>
-    <version>5.3.0</version>
+    <version>6.0.0</version>
     <packaging>jar</packaging>
 
     <parent>
         <groupId>de.uros.citlab</groupId>
         <artifactId>parent_pom</artifactId>
-        <version>1.5</version>
+        <version>1.7</version>
     </parent>
     <dependencies>
         <!--CITLAB ROSTOCK-->
@@ -24,14 +24,6 @@
         </dependency>
 
         <!--TRANSKRIBUS-->
-        <dependency>
-            <groupId>eu.transkribus</groupId>
-            <artifactId>TranskribusInterfaces</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>eu.transkribus</groupId>
-            <artifactId>TranskribusXMLExtractor</artifactId>
-        </dependency>
         <dependency>
             <groupId>eu.transkribus</groupId>
             <artifactId>TranskribusBaseLineMetricTool</artifactId>

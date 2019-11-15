@@ -2,8 +2,8 @@ package de.uros.citlab.errorrate.htr.end2end;
 
 import de.uros.citlab.errorrate.aligner.BaseLineAligner;
 import de.uros.citlab.errorrate.interfaces.ILine;
-import eu.transkribus.interfaces.IStringNormalizer;
-import eu.transkribus.interfaces.ITokenizer;
+import de.uros.citlab.errorrate.interfaces.IStringNormalizer;
+import de.uros.citlab.tokenizer.interfaces.ITokenizer;
 import org.apache.commons.math3.util.Pair;
 
 import java.awt.*;

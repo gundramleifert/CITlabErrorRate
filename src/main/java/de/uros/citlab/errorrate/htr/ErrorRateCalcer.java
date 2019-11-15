@@ -7,17 +7,17 @@ package de.uros.citlab.errorrate.htr;
 
 import de.uros.citlab.errorrate.htr.end2end.ErrorModuleEnd2End;
 import de.uros.citlab.errorrate.interfaces.IErrorModule;
+import de.uros.citlab.errorrate.interfaces.IStringNormalizer;
 import de.uros.citlab.errorrate.normalizer.StringNormalizerLetterNumber;
 import de.uros.citlab.errorrate.types.Count;
 import de.uros.citlab.errorrate.types.Method;
 import de.uros.citlab.errorrate.types.Result;
 import de.uros.citlab.errorrate.util.ObjectCounter;
+import de.uros.citlab.errorrate.util.PageXmlUtils;
 import de.uros.citlab.tokenizer.TokenizerCategorizer;
 import de.uros.citlab.tokenizer.categorizer.CategorizerCharacterDft;
 import de.uros.citlab.tokenizer.categorizer.CategorizerWordMergeGroups;
-import eu.transkribus.interfaces.IStringNormalizer;
-import eu.transkribus.interfaces.ITokenizer;
-import eu.transkribus.languageresources.extractor.pagexml.PAGEXMLExtractor;
+import de.uros.citlab.tokenizer.interfaces.ITokenizer;
 import org.apache.commons.math3.util.Pair;
 
 import java.io.File;
@@ -160,7 +160,7 @@ public class ErrorRateCalcer {
         for (int i = 0; i < gt.length; i++) {
             File fileGT = gt[i];
             File fileHYP = hyp[i];
-            Pair<List<String>, List<String>> textlines = reshape(new PAGEXMLExtractor().extractTextFromFilePairwise(fileHYP.getPath(), fileGT.getPath()));
+            Pair<List<String>, List<String>> textlines = reshape(PageXmlUtils.extractTextFromFilePairwise(fileHYP.getPath(), fileGT.getPath()));
             for (Method method : methods) {
                 IErrorModule errorModule = modules.get(method);
                 errorModule.calculate(textlines.getFirst(), textlines.getSecond());

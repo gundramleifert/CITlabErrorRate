@@ -1,6 +1,7 @@
 package de.uros.citlab.errorrate.types;
 
-import eu.transkribus.interfaces.ITokenizer;
+
+import de.uros.citlab.tokenizer.interfaces.ITokenizer;
 
 import java.util.Arrays;
 import java.util.LinkedList;

@@ -5,19 +5,15 @@
  */
 package de.uros.citlab.errorrate.htr.end2end;
 
-import de.uros.citlab.errorrate.interfaces.IErrorModuleWithSegmentation;
-import de.uros.citlab.errorrate.interfaces.ILine;
-import de.uros.citlab.errorrate.interfaces.ILineComparison;
-import de.uros.citlab.errorrate.interfaces.IPoint;
+import de.uros.citlab.errorrate.interfaces.*;
 import de.uros.citlab.errorrate.types.*;
 import de.uros.citlab.errorrate.util.GroupUtil;
 import de.uros.citlab.errorrate.util.HeatMapUtil;
 import de.uros.citlab.errorrate.util.ObjectCounter;
 import de.uros.citlab.errorrate.util.VectorUtil;
 import de.uros.citlab.tokenizer.TokenizerCategorizer;
+import de.uros.citlab.tokenizer.interfaces.ITokenizer;
 import de.uros.citlab.tokenizer.categorizer.CategorizerCharacterDft;
-import eu.transkribus.interfaces.IStringNormalizer;
-import eu.transkribus.interfaces.ITokenizer;
 import org.apache.commons.math3.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

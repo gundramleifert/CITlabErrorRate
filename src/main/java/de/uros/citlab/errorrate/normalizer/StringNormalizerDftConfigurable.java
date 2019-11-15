@@ -5,8 +5,8 @@
  */
 package de.uros.citlab.errorrate.normalizer;
 
+import de.uros.citlab.errorrate.interfaces.IStringNormalizer;
 import de.uros.citlab.errorrate.types.Properties;
-import eu.transkribus.interfaces.IStringNormalizer;
 
 import java.text.Normalizer.Form;
 import java.util.Iterator;

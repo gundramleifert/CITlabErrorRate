@@ -6,14 +6,10 @@
 package de.uros.citlab.errorrate.htr;
 
 import de.uros.citlab.errorrate.htr.end2end.AlignmentTask;
-import de.uros.citlab.errorrate.interfaces.IErrorModuleWithSegmentation;
-import de.uros.citlab.errorrate.interfaces.ILine;
-import de.uros.citlab.errorrate.interfaces.ILineComparison;
-import de.uros.citlab.errorrate.interfaces.IPoint;
+import de.uros.citlab.errorrate.interfaces.*;
 import de.uros.citlab.errorrate.types.*;
 import de.uros.citlab.errorrate.util.ObjectCounter;
-import eu.transkribus.interfaces.IStringNormalizer;
-import eu.transkribus.interfaces.ITokenizer;
+import de.uros.citlab.tokenizer.interfaces.ITokenizer;
 import org.apache.commons.math3.util.Pair;
 
 import java.util.*;
@@ -213,7 +209,7 @@ public class ErrorModuleBagOfTokens implements IErrorModuleWithSegmentation {
 
             @Override
             public String toString() {
-                return String.format("[%2d:%2d]=>[%2d:%2d]: '%s'=>'%s' %s", getRecoIndex(), getInnerRecoIndex(),getRefIndex(), getInnerRefIndex(), reco == null ? "" : reco.value, ref == null ? "" : ref.value, getPath().get(0)).replace("\n", "\\n");
+                return String.format("[%2d:%2d]=>[%2d:%2d]: '%s'=>'%s' %s", getRecoIndex(), getInnerRecoIndex(), getRefIndex(), getInnerRefIndex(), reco == null ? "" : reco.value, ref == null ? "" : ref.value, getPath().get(0)).replace("\n", "\\n");
             }
         };
     }
