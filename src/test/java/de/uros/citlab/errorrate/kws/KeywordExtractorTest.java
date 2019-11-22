@@ -156,8 +156,11 @@ public class KeywordExtractorTest {
         List<String> keywords = Arrays.asList("der", "und");
         String[] idListGT = getStringList(listGT);
         String[] idListBot = getStringList(listBot);
-        KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(getStringList(listGT), idListGT, keywords);
-        KWS.Result keyWordErr = GT2Hyp(kwe.getKeywordGroundTruth(getStringList(listBot), idListBot, keywords));
+        KeywordExtractor.PageIterator pi = new KeywordExtractor.FileListPageIterator(idListGT);
+        KeywordExtractor.PageIterator pibot = new KeywordExtractor.FileListPageIterator(idListBot);
+        KeywordExtractor.KeyWordProvider kp = new KeywordExtractor.FixedKeyWordProvider(keywords);
+        KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(pi, kp);
+        KWS.Result keyWordErr = GT2Hyp(kwe.getKeywordGroundTruth(pibot, kp));
         KWSEvaluationMeasure kem = new KWSEvaluationMeasure(new BaseLineAligner());
         kem.setGroundtruth(keywordGroundTruth);
         kem.setResults(keyWordErr);

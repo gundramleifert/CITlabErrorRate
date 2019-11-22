@@ -5,10 +5,9 @@
 
     <name>CITlabErrorRate</name>
     <description>A tool for creating different error rates</description>
-
     <groupId>de.uros.citlab</groupId>
     <artifactId>errorrate</artifactId>
-    <version>6.0.0</version>
+    <version>6.1.0</version>
     <packaging>jar</packaging>
 
     <parent>

@@ -5,11 +5,15 @@
  */
 package de.uros.citlab.errorrate.types;
 
+import de.uros.citlab.errorrate.util.HeatMapUtil;
 import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.procedure.TIntObjectProcedure;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.imageio.ImageIO;
+import java.io.File;
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
@@ -102,6 +106,34 @@ public class PathCalculatorGraph<Reco, Reference> {
         public boolean callbackUpdate(double d, float[][] mat);
 
         public int[] getSize(int[] actual);
+    }
+    public static class ImageExportDynMatViewer implements PathCalculatorGraph.DynMatViewer {
+        private final File file;
+
+        public ImageExportDynMatViewer(File file) {
+            this.file = file;
+        }
+
+        @Override
+        public boolean callbackEnd(float[][] mat) {
+            try {
+                ImageIO.write(HeatMapUtil.getHeatMap(mat, 7), "png", file);
+            } catch (IOException e) {
+                LoggerFactory.getLogger(ImageExportDynMatViewer.class).warn("cannot save image " + file, e);
+                return false;
+            }
+            return true;
+        }
+
+        @Override
+        public boolean callbackUpdate(double d, float[][] mat) {
+            return false;
+        }
+
+        @Override
+        public int[] getSize(int[] actual) {
+            return new int[]{Math.min(actual[0], 10000), Math.min(actual[1], 10000)};
+        }
     }
 
     public void setDynMatViewer(DynMatViewer dynMatViewer) {

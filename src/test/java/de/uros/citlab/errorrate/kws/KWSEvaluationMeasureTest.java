@@ -7,42 +7,28 @@ package de.uros.citlab.errorrate.kws;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.panayotis.gnuplot.JavaPlot;
-import de.uros.citlab.errorrate.kws.measures.IRankingMeasure;
 import de.uros.citlab.errorrate.aligner.BaseLineAligner;
+import de.uros.citlab.errorrate.kws.measures.IRankingMeasure;
 import de.uros.citlab.errorrate.kws.measures.IRankingStatistic;
 import de.uros.citlab.errorrate.types.KWS;
 import de.uros.citlab.errorrate.types.KWS.Line;
 import de.uros.citlab.errorrate.types.KWS.Page;
 import de.uros.citlab.errorrate.types.KWS.Result;
 import de.uros.citlab.errorrate.types.KWS.Word;
-import de.uros.citlab.errorrate.util.PlotUtil;
-import java.awt.Polygon;
+import org.apache.commons.io.FileUtils;
+import org.junit.*;
+
+import java.awt.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.function.Consumer;
-import org.apache.commons.io.FileUtils;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import java.util.*;
+
 import static org.junit.Assert.*;
 
 /**
- *
  * @author gundram
  */
 public class KWSEvaluationMeasureTest {
@@ -173,6 +159,7 @@ public class KWSEvaluationMeasureTest {
     private void addGtWord(Line line, String keyword, Polygon p, String pageId) {
         line.addKeyword(keyword, p);
     }
+
     private static final File folderGT = new File("src/test/resources/gt");
     private static File[] listGT;
 
@@ -226,7 +213,10 @@ public class KWSEvaluationMeasureTest {
         List<String> readLines = FileUtils.readLines(new File("src/test/resources/kw.txt"));
 //        List<String> readLines = Arrays.asList("seyn");
         KeywordExtractor kwe = new KeywordExtractor();
-        KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(getStringList(listGT), null, readLines);
+        KeywordExtractor.PageIterator pi = new KeywordExtractor.FileListPageIterator(getStringList(listGT),null);
+        KeywordExtractor.KeyWordProvider kp = new KeywordExtractor.FixedKeyWordProvider(readLines);
+
+        KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(pi, kp);
         KWSEvaluationMeasure kem = new KWSEvaluationMeasure(new BaseLineAligner());
         kem.setGroundtruth(keywordGroundTruth);
         LinkedList<KWS.MatchList> mls = new LinkedList<>();
@@ -266,13 +256,16 @@ public class KWSEvaluationMeasureTest {
         List<String> readLines = FileUtils.readLines(new File("src/test/resources/kw.txt"));
 //        List<String> readLines = Arrays.asList("seyn");
         KeywordExtractor kwe = new KeywordExtractor();
-        KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(getStringList(listGT), null, readLines);
+        KeywordExtractor.PageIterator pi = new KeywordExtractor.FileListPageIterator(getStringList(listGT),null);
+        KeywordExtractor.KeyWordProvider kp = new KeywordExtractor.FixedKeyWordProvider(readLines);
+
+        KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(pi, kp);
         KWSEvaluationMeasure kem = new KWSEvaluationMeasure(new BaseLineAligner());
         kem.setGroundtruth(keywordGroundTruth);
         IRankingMeasure.Measure[] ms = new IRankingMeasure.Measure[]{
-            IRankingMeasure.Measure.GAP, IRankingMeasure.Measure.MAP,
-            IRankingMeasure.Measure.R_PRECISION, IRankingMeasure.Measure.PRECISION,
-            IRankingMeasure.Measure.RECALL, IRankingMeasure.Measure.PRECISION_AT_10, IRankingMeasure.Measure.WMAP};
+                IRankingMeasure.Measure.GAP, IRankingMeasure.Measure.MAP,
+                IRankingMeasure.Measure.R_PRECISION, IRankingMeasure.Measure.PRECISION,
+                IRankingMeasure.Measure.RECALL, IRankingMeasure.Measure.PRECISION_AT_10, IRankingMeasure.Measure.WMAP};
         for (IRankingMeasure.Measure m : ms) {
             for (int i : new int[]{5, 10, 20, 50}) {
                 Result res = getResult(new File(String.format("src/test/resources/kws_htr/out_%02d.json", i)));
@@ -301,7 +294,10 @@ public class KWSEvaluationMeasureTest {
         List<String> readLines = FileUtils.readLines(new File("src/test/resources/kw.txt"));
 //        List<String> readLines = Arrays.asList("sein");
         KeywordExtractor kwe = new KeywordExtractor();
-        KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(getStringList(listGT), null, readLines);
+        KeywordExtractor.PageIterator pi = new KeywordExtractor.FileListPageIterator(getStringList(listGT));
+        KeywordExtractor.KeyWordProvider kp = new KeywordExtractor.FixedKeyWordProvider(readLines);
+
+        KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(pi, kp);
         KWSEvaluationMeasure kem = new KWSEvaluationMeasure(new BaseLineAligner());
         kem.setGroundtruth(keywordGroundTruth);
         List<double[]> data = new LinkedList<>();

@@ -1,6 +1,12 @@
 
 # Changelog
 
+# 6.1.0
+* make KeywordExtractor usable if keyword information is not in PageXML format 
+
+# 6.0.0
+* make independent from TranskribusInterface and from TranskribusLangugaeResouces
+
 # 5.3.0
 * new implementation of ErrorRateT2I
 * new debug-possibility of GraphCalculator by tracing the DynProg matrix
