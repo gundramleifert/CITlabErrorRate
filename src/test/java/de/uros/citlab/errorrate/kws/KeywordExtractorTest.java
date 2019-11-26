@@ -156,11 +156,10 @@ public class KeywordExtractorTest {
         KeywordExtractor.KeyWordProvider kp = new KeywordExtractor.FixedKeyWordProvider(keywords);
         KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(pi, kp);
         KWS.Result keyWordErr = GT2Hyp(kwe.getKeywordGroundTruth(pibot, kp));
-        KWSEvaluationMeasure kem = new KWSEvaluationMeasure(new KWSEvaluationMeasure.BaseLineKeyWordMatcher());
         LinkedList<IRankingMeasure.Measure> measures = new LinkedList<>();
         measures.add(IRankingMeasure.Measure.GAP);
         measures.add(IRankingMeasure.Measure.MAP);
-        Map<IRankingMeasure.Measure, Double> measure = kem.getMeasure(keyWordErr,keywordGroundTruth,measures);
+        Map<IRankingMeasure.Measure, Double> measure = KWSEvaluationMeasure.getMeasure(keyWordErr,keywordGroundTruth,KeyWordMatchers.nearBaselines(),measures);
         System.out.println(measure.get(IRankingMeasure.Measure.GAP));
         System.out.println(measure.get(IRankingMeasure.Measure.MAP));
     }

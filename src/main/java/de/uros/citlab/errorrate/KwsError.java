@@ -8,33 +8,22 @@ package de.uros.citlab.errorrate;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.panayotis.gnuplot.JavaPlot;
-
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-
-import de.uros.citlab.errorrate.aligner.BaseLineAligner;
 import de.uros.citlab.errorrate.htr.ErrorModuleDynProg;
 import de.uros.citlab.errorrate.kws.KWSEvaluationMeasure;
+import de.uros.citlab.errorrate.kws.KeyWordMatchers;
 import de.uros.citlab.errorrate.kws.measures.IRankingMeasure;
 import de.uros.citlab.errorrate.kws.measures.IRankingStatistic;
 import de.uros.citlab.errorrate.types.KWS.GroundTruth;
 import de.uros.citlab.errorrate.types.KWS.Result;
 import de.uros.citlab.errorrate.types.KWS.Word;
 import de.uros.citlab.errorrate.util.PlotUtil;
+import org.apache.commons.cli.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Logger;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Parser to make {@link ErrorModuleDynProg} accessible for the console.
@@ -45,7 +34,7 @@ public class KwsError {
 
     private static final Logger LOG = Logger.getLogger(KwsError.class.getName());
     private final Options options = new Options();
-    public final KWSEvaluationMeasure evaluationMeasure = new KWSEvaluationMeasure(new KWSEvaluationMeasure.BaseLineKeyWordMatcher(0.0001));
+    private final KWSEvaluationMeasure.KeyWordMatcher matcher = KeyWordMatchers.nearBaselines();
 
     public KwsError() {
         options.addOption("h", "help", false, "show this help");
@@ -58,9 +47,9 @@ public class KwsError {
 //        options.addOption("k", "keywords", true, "if no kw list is given, generated kw list is written to given path");
     }
 
-    public KWSEvaluationMeasure getEvaluationMeasure() {
-        return evaluationMeasure;
-    }
+//    public KWSEvaluationMeasure getEvaluationMeasure() {
+//        return evaluationMeasure;
+//    }
 
     private static Result getHyp(File path) {
         Gson gson = new GsonBuilder().excludeFieldsWithoutExposeAnnotation().create();
@@ -90,7 +79,7 @@ public class KwsError {
         return new Result(words);
     }
 
-//    private Pair<String[], String[]> getListsPageAndIndex(CommandLine cmd) {
+    //    private Pair<String[], String[]> getListsPageAndIndex(CommandLine cmd) {
 //        File listFile = new File(cmd.getOptionValue('p'));
 //        if (!listFile.exists()) {
 //            help("file " + listFile.getPath() + " containing the xml-pathes does not exist.");
@@ -217,7 +206,7 @@ public class KwsError {
             } else {
                 m.addAll(Arrays.asList(IRankingMeasure.Measure.values()));
             }
-            Map<IRankingMeasure.Measure, Double> measure = evaluationMeasure.getMeasure(hyp,gt,m);
+            Map<IRankingMeasure.Measure, Double> measure = KWSEvaluationMeasure.getMeasure(hyp, gt, matcher, m);
             if (cmd.hasOption('d') || cmd.hasOption('s')) {
                 StringBuilder sb = new StringBuilder();
                 if (measure.containsKey(IRankingMeasure.Measure.MAP)) {
@@ -227,7 +216,7 @@ public class KwsError {
                     sb.append(String.format("R-Prec=%.3f", measure.get(IRankingMeasure.Measure.R_PRECISION))).append(' ');
                 }
                 String name = sb.toString().trim();
-                Map<IRankingStatistic.Statistic, double[]> stats = evaluationMeasure.getStats(hyp,gt,Arrays.asList(IRankingStatistic.Statistic.PR_CURVE));
+                Map<IRankingStatistic.Statistic, double[]> stats = KWSEvaluationMeasure.getStats(hyp, gt, matcher, Arrays.asList(IRankingStatistic.Statistic.PR_CURVE));
                 JavaPlot prCurve = PlotUtil.getPRCurve(stats.values().iterator().next(), name);
                 if (cmd.hasOption('d')) {
                     PlotUtil.getDefaultTerminal().accept(prCurve);
@@ -264,7 +253,7 @@ public class KwsError {
         formater.printHelp(
                 "java -cp <this-jar>.jar " + KwsError.class.getName() + " <path_result_file> <path_groundtruth_file>",
                 "This method calculates different measures for KWS results. "
-                + "Both files have to be json-files with the desired structure.",
+                        + "Both files have to be json-files with the desired structure.",
                 options,
                 suffix,
                 true

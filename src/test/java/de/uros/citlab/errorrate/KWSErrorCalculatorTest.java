@@ -56,15 +56,15 @@ public class KWSErrorCalculatorTest {
         File resFile = new File("src/test/resources/kws_htr/out_20.json");
         KwsError calculator = new KwsError();
         TreeMap<IRankingMeasure.Measure, Double> exp = new TreeMap<>();
-        exp.put(IRankingMeasure.Measure.R_PRECISION, 0.8120805369127517);
-        exp.put(IRankingMeasure.Measure.G_NCDG, -0.03588860123752724);
-        exp.put(IRankingMeasure.Measure.MAP, 0.8728852752697795);
-        exp.put(IRankingMeasure.Measure.GAP, 0.872651117911514);
-        exp.put(IRankingMeasure.Measure.RECALL, 0.9630872483221476);
-        exp.put(IRankingMeasure.Measure.PRECISION_AT_10, 0.49818181818181795);
-        exp.put(IRankingMeasure.Measure.PRECISION, 0.4094151212553495);
-        exp.put(IRankingMeasure.Measure.M_NCDG, 0.3518673701250064);
-        exp.put(IRankingMeasure.Measure.WMAP, 0.8933646170177407);
+        exp.put(IRankingMeasure.Measure.R_PRECISION, 0.825503355704698);
+        exp.put(IRankingMeasure.Measure.G_NCDG, -0.018474595791665722);
+        exp.put(IRankingMeasure.Measure.MAP, 0.9002287096132139);
+        exp.put(IRankingMeasure.Measure.GAP, 0.8987380224491166);
+        exp.put(IRankingMeasure.Measure.RECALL, 0.9765100671140939);
+        exp.put(IRankingMeasure.Measure.PRECISION_AT_10, 0.5054545454545453);
+        exp.put(IRankingMeasure.Measure.PRECISION, 0.41512125534950073);
+        exp.put(IRankingMeasure.Measure.M_NCDG, 0.3827312294124316);
+        exp.put(IRankingMeasure.Measure.WMAP,0.9141140577336244);
         Map<IRankingMeasure.Measure, Double> run = calculator.run(new String[]{resFile.getPath(), gtList.getPath()});
         for (IRankingMeasure.Measure measure : run.keySet()) {
 //            System.out.println(measure + " = " + run.get(measure));

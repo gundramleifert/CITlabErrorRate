@@ -1,6 +1,9 @@
 
 # Changelog
 
+# 7.0.0
+* change KWS Measure and make it mor configurable
+
 # 6.1.0
 * make KeywordExtractor usable if keyword information is not in PageXML format 
 

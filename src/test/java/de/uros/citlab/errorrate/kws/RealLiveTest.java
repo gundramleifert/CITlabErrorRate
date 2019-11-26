@@ -132,10 +132,9 @@ public class RealLiveTest {
         word.add(new KWS.Entry(0.9, "ID_1", "pageID_2", null, polygon1));
         word.add(new KWS.Entry(0.9, "ID_2", "pageID_2", null, polygon2));
 
-        KWSEvaluationMeasure measure = new KWSEvaluationMeasure(new KWSEvaluationMeasure.BaseLineKeyWordMatcher());
-        Map<IRankingMeasure.Measure, Double> measure1 = measure.getMeasure(
+        Map<IRankingMeasure.Measure, Double> measure1 = KWSEvaluationMeasure.getMeasure(
                 new KWS.Result(new HashSet<>(Arrays.asList(word))),
-                keywordGroundTruth,
+                keywordGroundTruth, KeyWordMatchers.nearBaselines(),
                 IRankingMeasure.Measure.PRECISION);
     }
 }
