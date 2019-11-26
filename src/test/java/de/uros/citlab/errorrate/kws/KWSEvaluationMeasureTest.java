@@ -236,7 +236,7 @@ public class KWSEvaluationMeasureTest {
             for (int idxMatch = 0; idxMatch < listSmall.matches.size(); idxMatch++) {
                 KWS.Match matchSmallList = listSmall.matches.get(idxMatch);
                 KWS.Match matchLargeList = listLarge.matches.get(idxMatch);
-                if (matchSmallList.matchConf != matchLargeList.matchConf && matchSmallList.type != KWS.Type.FALSE_NEGATIVE) {
+                if (matchSmallList.getHypConfidence() != matchLargeList.getHypConfidence() && matchSmallList.type != KWS.Type.FALSE_NEGATIVE) {
                     assertTrue("confidences differ on idxMatch " + idxMatch + " and between indexes " + (idxList2 - 1) + " and " + idxList2 + ".", matchSmallList.matchConf == matchLargeList.matchConf
                     );
                 }

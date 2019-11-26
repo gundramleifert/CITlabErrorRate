@@ -95,6 +95,7 @@ public class KWS {
             for (Entry entry : hypsRemain) {
                 res.add(new Match(Type.FALSE_POSITIVE, Double.NaN, word, entry, null));
             }
+            Collections.sort(res);
             return res;
         }
 
@@ -191,17 +192,13 @@ public class KWS {
             this.gt = gt;
         }
 
+        public double getHypConfidence() {
+            return getHyp() == null ? 0.0 : getHyp().getConf();
+        }
+
         @Override
         public int compareTo(Match o) {
-            Entry otherHyp = o.getHyp();
-            Entry thisHyp = getHyp();
-            if (otherHyp == null) {
-                return thisHyp == null ? 0 : -1;
-            }
-            if (thisHyp == null) {
-                return 1;
-            }
-            return Double.compare(otherHyp.conf,thisHyp.conf);
+            return Double.compare(o.getHypConfidence(), getHypConfidence());
         }
 
         public String getWord() {
