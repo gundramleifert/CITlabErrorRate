@@ -10,23 +10,21 @@ import de.uros.citlab.errorrate.types.KWS;
 import de.uros.citlab.errorrate.util.ExtractUtil;
 import de.uros.citlab.errorrate.util.PolygonUtil;
 import de.uros.citlab.tokenizer.interfaces.ITokenizer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.awt.*;
 import java.io.File;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- *
  * @author gundram
  */
 public class KeywordExtractor {
-
+    final static Logger LOG = LoggerFactory.getLogger(KeywordExtractor.class);
     private HashMap<String, Pattern> keywords = new LinkedHashMap<>();
     private final boolean part;
     private final boolean upper;
@@ -43,6 +41,105 @@ public class KeywordExtractor {
     public KeywordExtractor(boolean part, boolean upper) {
         this.part = part;
         this.upper = upper;
+    }
+
+    public interface Page {
+        List<ILine> getLines();
+
+        String getID();
+    }
+
+    public interface Line {
+        String getText();
+
+        String getID();
+
+        Polygon getBaseline();
+    }
+
+    /**
+     * for a given text line provide possible keyword (which must not be in the text line).
+     * Two default implementation are available  {@link KeywordExtractor.FixedKeyWordProvider} and {@link KeywordExtractor.TokenKeyWordProvider}
+     */
+    public interface KeyWordProvider {
+        Set<String> getKeywords(String textLine);
+    }
+
+    /**
+     * return the given keywords independent of the text line
+     */
+    public static class FixedKeyWordProvider implements KeyWordProvider {
+        private final Set<String> keywords;
+
+        public FixedKeyWordProvider(Collection<String> keywords) {
+            this.keywords = new LinkedHashSet<>(keywords);
+        }
+
+        @Override
+        public Set<String> getKeywords(String textLine) {
+            return keywords;
+        }
+    }
+
+    /**
+     * returns all tokens which are returned by the tokenizer on a given text line.
+     */
+    public static class TokenKeyWordProvider implements KeyWordProvider {
+        private final ITokenizer tokenizer;
+
+        public TokenKeyWordProvider(ITokenizer tokenizer) {
+            this.tokenizer = tokenizer;
+        }
+
+        @Override
+        public Set<String> getKeywords(String textLine) {
+            return new LinkedHashSet<>(tokenizer.tokenize(textLine));
+        }
+    }
+
+    /**
+     * A PageIterator has to provide a page. Each page has to contain all text lines on the given pages.
+     * The pageID has to be unique, whereby the LineID hast to be unique within the page.
+     */
+    public interface PageIterator {
+        Iterator<Page> getIterator();
+    }
+
+    /**
+     * creates an iterator over xmls which are saved in pageXML-format.
+     * If no IDs are given, the path of the xml-files is taken as id.
+     */
+    public static class FileListPageIterator implements PageIterator {
+        Iterator<Page> res;
+
+        public FileListPageIterator(String[] filePaths) {
+            this(filePaths, filePaths);
+        }
+
+        public FileListPageIterator(String[] filePaths, String[] fileIds) {
+            List<Page> list = new LinkedList<>();
+            for (int i = 0; i < filePaths.length; i++) {
+                final List<ILine> lines = ExtractUtil.getLinesFromFile(new File(filePaths[i]));
+                final int j = i;
+                list.add(new Page() {
+                    @Override
+                    public List<ILine> getLines() {
+                        return lines;
+                    }
+
+                    @Override
+                    public String getID() {
+                        return fileIds == null ? String.valueOf(j) : fileIds[j];
+                    }
+                });
+            }
+            res = list.iterator();
+        }
+
+        @Override
+        public Iterator<Page> getIterator() {
+            return res;
+        }
     }
 
     private Pattern getPattern(String kw) {
@@ -74,75 +171,52 @@ public class KeywordExtractor {
             Matcher matcherPrefix = prefixPattern.matcher(group);
             Matcher matcherSuffix = suffixPattern.matcher(group);
             double[] match = new double[]{
-                (matcherPrefix.find() ? matcher.start() + matcherPrefix.group().length() : matcher.start()) / ((double) line.length()),
-                (matcherSuffix.find() ? matcher.end() - matcherSuffix.group().length() : matcher.end()) / ((double) line.length())
+                    (matcherPrefix.find() ? matcher.start() + matcherPrefix.group().length() : matcher.start()) / ((double) line.length()),
+                    (matcherSuffix.find() ? matcher.end() - matcherSuffix.group().length() : matcher.end()) / ((double) line.length())
             };
             startEnd.add(match);
         }
         return startEnd.toArray(new double[0][]);
     }
 
-    public KWS.GroundTruth getKeywordGroundTruth(File[] filePaths, List<String> keywords) {
-        String[] both = new String[filePaths.length];
-        for (int i = 0; i < both.length; i++) {
-            both[i] = filePaths[i].getAbsolutePath();
-        }
-        return getKeywordGroundTruth(both, both, keywords);
-    }
-
-    public KWS.GroundTruth getKeywordGroundTruth(String[] filePaths, String[] fileIds, List<String> keywords) {
+    public KWS.GroundTruth getKeywordGroundTruth(PageIterator iterator, KeyWordProvider keyWordProvider) {
         List<KWS.Page> pages = new LinkedList<>();
-        for (int i = 0; i < filePaths.length; i++) {
-            String fileId = fileIds == null ? String.valueOf(i) : fileIds[i];
-            String filePath = filePaths[i];
-            pages.add(getKeywordsFromFile(new File(filePath), fileId, keywords));
-        }
+        iterator.getIterator().forEachRemaining(page -> pages.add(getKeyWordGroundTruthFromPage(page, keyWordProvider)));
         return new KWS.GroundTruth(pages);
     }
 
-    public KWS.GroundTruth getKeywordGroundTruth(String[] filePaths, String[] fileIds, ITokenizer tokenizer) {
-        List<KWS.Page> pages = new LinkedList<>();
-        for (int i = 0; i < filePaths.length; i++) {
-            String fileId = fileIds == null ? String.valueOf(i) : fileIds[i];
-            String filePath = filePaths[i];
-            pages.add(getKeywordsFromFile(new File(filePath), fileId, tokenizer));
-        }
-        return new KWS.GroundTruth(pages);
-    }
-
-    public KWS.Page getKeywordsFromFile(File file, String pageID, ITokenizer tokenizer) {
-        List<ILine> lines = ExtractUtil.getLinesFromFile(file.getPath());
-        KWS.Page page = new KWS.Page(pageID != null ? pageID : "");
+    public KWS.Page getKeyWordGroundTruthFromPage(Page page, KeyWordProvider keyWordProvider) {
+        List<ILine> lines = page.getLines();
+        KWS.Page pageRes = new KWS.Page(page.getID());
+        Boolean simulateLine = null;
+        int i = 0;
         for (ILine line : lines) {
-            KWS.Line kwsLine = new KWS.Line(line.getBaseline());
-            page.addLine(kwsLine);
-            String textline = upper ? line.getText().toUpperCase() : line.getText();
-            Set<String> tokenize = new HashSet<>(tokenizer.tokenize(textline));
-            for (String keyword : tokenize) {
-                double[][] keywordPosition = getKeywordPosition(keyword, textline);
-                for (double[] ds : keywordPosition) {
-                    kwsLine.addKeyword(keyword, PolygonUtil.getPolygonPart(line.getBaseline(), ds[0], ds[1]));
+            if (simulateLine != null) {
+                if (simulateLine != (line.getBaseline() == null)) {
+                    throw new RuntimeException("only some text lines contain baselines.");
+                }
+            } else {
+                simulateLine = line.getBaseline() == null;
+                if (simulateLine) {
+                    LOG.info("simulate polygons for page {} because no polygons are given.", page.getID());
                 }
             }
-        }
-        return page;
-    }
-
-    public KWS.Page getKeywordsFromFile(File file, String pageID, List<String> keywords) {
-        List<ILine> lines = ExtractUtil.getLinesFromFile(file.getPath());
-        KWS.Page page = new KWS.Page(pageID != null ? pageID : "");
-        for (ILine line : lines) {
-            KWS.Line kwsLine = new KWS.Line(line.getBaseline());
-            page.addLine(kwsLine);
+            KWS.Line kwsLine = new KWS.Line(line.getId(), simulateLine
+                    ? new Polygon(new int[]{0, 1000}, new int[]{i, i}, 2)
+                    : line.getBaseline(), null);
+            i += 50;
+            pageRes.addLine(kwsLine);
+            String textLine = upper ? line.getText().toUpperCase() : line.getText();
+            Set<String> keywords = keyWordProvider.getKeywords(textLine);
             for (String keyword : keywords) {
-                String textline = upper ? line.getText().toUpperCase() : line.getText();
-                double[][] keywordPosition = getKeywordPosition(keyword, textline);
+                String keywordNormalized = upper ? keyword.toUpperCase() : keyword;
+                double[][] keywordPosition = getKeywordPosition(keywordNormalized, textLine);
                 for (double[] ds : keywordPosition) {
-                    kwsLine.addKeyword(keyword, PolygonUtil.getPolygonPart(line.getBaseline(), ds[0], ds[1]));
+                    kwsLine.addKeyword(keywordNormalized, PolygonUtil.getPolygonPart(line.getBaseline(), ds[0], ds[1]), null);
                 }
             }
         }
-        return page;
+        return pageRes;
     }
 
 }

@@ -7,7 +7,7 @@ package de.uros.citlab.errorrate.kws.measures;
 
 import de.uros.citlab.errorrate.types.KWS.Match;
 import de.uros.citlab.errorrate.types.KWS.MatchList;
-import static de.uros.citlab.errorrate.types.KWS.Type.TRUE_POSITIVE;
+
 import java.util.LinkedList;
 import java.util.List;
 
@@ -25,7 +25,7 @@ public class Precision implements IRankingMeasure {
             list.addAll(matchList.matches);
         }
         MatchList kwsMatchList = new MatchList(list);
-        kwsMatchList.sort();
+//        list.sort();
         return calcPrecision(kwsMatchList, kwsMatchList.getHypSize());
     }
 

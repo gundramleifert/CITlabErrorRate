@@ -128,6 +128,12 @@ public class ExtractUtil {
                                     public Polygon getBaseline() {
                                         return polygon;
                                     }
+
+                                    @Override
+                                    public String getId() {
+                                        return line.getId().toString();
+                                    }
+
                                 });
                             }
                         }

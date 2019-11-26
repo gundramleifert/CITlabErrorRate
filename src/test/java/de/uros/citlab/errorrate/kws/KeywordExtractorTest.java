@@ -6,23 +6,18 @@
 package de.uros.citlab.errorrate.kws;
 
 import de.uros.citlab.errorrate.kws.measures.IRankingMeasure;
-import de.uros.citlab.errorrate.aligner.BaseLineAligner;
 import de.uros.citlab.errorrate.types.KWS;
-import java.awt.Polygon;
+import org.apache.commons.io.FileUtils;
+import org.junit.*;
+
+import java.awt.*;
 import java.io.File;
+import java.util.List;
 import java.util.*;
 
-import org.apache.commons.io.FileUtils;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 /**
- *
  * @author gundram
  */
 public class KeywordExtractorTest {
@@ -133,7 +128,7 @@ public class KeywordExtractorTest {
                         po.setParentLine(line);
                     }
                     for (Polygon position : positions) {
-                        kwsWord.add(new KWS.Entry(1.0, null, position, pageID));
+                        kwsWord.add(new KWS.Entry(1.0, line.getLineID(), page.getPageID(), position, null));
                     }
                 }
             }
@@ -156,15 +151,15 @@ public class KeywordExtractorTest {
         List<String> keywords = Arrays.asList("der", "und");
         String[] idListGT = getStringList(listGT);
         String[] idListBot = getStringList(listBot);
-        KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(getStringList(listGT), idListGT, keywords);
-        KWS.Result keyWordErr = GT2Hyp(kwe.getKeywordGroundTruth(getStringList(listBot), idListBot, keywords));
-        KWSEvaluationMeasure kem = new KWSEvaluationMeasure(new BaseLineAligner());
-        kem.setGroundtruth(keywordGroundTruth);
-        kem.setResults(keyWordErr);
+        KeywordExtractor.PageIterator pi = new KeywordExtractor.FileListPageIterator(idListGT);
+        KeywordExtractor.PageIterator pibot = new KeywordExtractor.FileListPageIterator(idListBot);
+        KeywordExtractor.KeyWordProvider kp = new KeywordExtractor.FixedKeyWordProvider(keywords);
+        KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(pi, kp);
+        KWS.Result keyWordErr = GT2Hyp(kwe.getKeywordGroundTruth(pibot, kp));
         LinkedList<IRankingMeasure.Measure> measures = new LinkedList<>();
         measures.add(IRankingMeasure.Measure.GAP);
         measures.add(IRankingMeasure.Measure.MAP);
-        Map<IRankingMeasure.Measure, Double> measure = kem.getMeasure(measures);
+        Map<IRankingMeasure.Measure, Double> measure = KWSEvaluationMeasure.getMeasure(keyWordErr,keywordGroundTruth,KeyWordMatchers.nearBaselines(),measures);
         System.out.println(measure.get(IRankingMeasure.Measure.GAP));
         System.out.println(measure.get(IRankingMeasure.Measure.MAP));
     }

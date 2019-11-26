@@ -37,7 +37,7 @@ public class WPRCurve implements IRankingStatistic {
         for (Match matche : matchList.matches) {
             if (!matche.type.equals(KWS.Type.FALSE_NEGATIVE)) {
                 //then it is tp or fp - wie have the GT word!
-                countGT.add(matche.getHyp());
+                countGT.add(matche.getWord());
             }
         }
         List<Double> precs = new LinkedList<>();
@@ -50,13 +50,13 @@ public class WPRCurve implements IRankingStatistic {
         for (Match match : matchList.matches) {
             switch (match.type) {
                 case FALSE_NEGATIVE:
-                    fn += 1.0 / countGT.get(match.getHyp());
+                    fn += 1.0 / countGT.get(match.getWord());
                     break;
                 case FALSE_POSITIVE:
-                    fp += 1.0 / countGT.get(match.getHyp());
+                    fp += 1.0 / countGT.get(match.getWord());
                     break;
                 case TRUE_POSITIVE:
-                    tp += 1.0 / countGT.get(match.getHyp());
+                    tp += 1.0 / countGT.get(match.getWord());
                     precs.add(tp / (tp + fp));
             }
         }

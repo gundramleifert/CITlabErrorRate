@@ -7,126 +7,45 @@ package de.uros.citlab.errorrate.kws;
 
 import de.uros.citlab.errorrate.kws.measures.IRankingMeasure;
 import de.uros.citlab.errorrate.kws.measures.IRankingStatistic;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import de.uros.citlab.errorrate.aligner.IBaseLineAligner;
 import de.uros.citlab.errorrate.types.KWS;
 import de.uros.citlab.errorrate.types.KWS.GroundTruth;
 import de.uros.citlab.errorrate.types.KWS.Line;
 import de.uros.citlab.errorrate.types.KWS.Page;
 import de.uros.citlab.errorrate.types.KWS.Word;
-import de.uros.citlab.errorrate.util.PolygonUtil;
-import java.awt.Polygon;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Observable;
-import java.util.Observer;
-import java.util.Set;
 import org.apache.commons.math3.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.awt.*;
+import java.util.List;
+import java.util.*;
+
 /**
- *
  * @author tobias
  */
 public class KWSEvaluationMeasure {
 
-    private final IBaseLineAligner aligner;
-    private KWS.Result hypo;
-    private KWS.GroundTruth ref;
-    List<KWS.MatchList> matchLists;
-    private double thresh = 0.5;
-    private double toleranceDefault = 20.0;
-    private boolean useLineBaseline = true;
     private static Logger LOG = LoggerFactory.getLogger(KWSEvaluationMeasure.class);
-    private MatchObserver mo = null;
 
-    public KWSEvaluationMeasure(IBaseLineAligner aligner) {
-        this.aligner = aligner;
+    public interface KeyWordMatcher {
+        void initPage(List<KWS.Entry> polyRefs);
+
+        /**
+         * value between 0.0 = no match and 1.0 = perfect match.
+         * If only binary decision can be done, use 0.0 and 1.0.
+         * Of value == 0.0 no match is done.
+         * If value > 0.0 a match is assumed (but with low matching confidence)
+         *
+         * @param gt
+         * @param hyp
+         * @return
+         */
+        double matches(KWS.Entry gt, KWS.Entry hyp);
+
     }
 
-    public void setResults(KWS.Result hypo) {
-        this.hypo = hypo;
-        matchLists = null;
-    }
 
-    public void setMatchObserver(MatchObserver mo) {
-        this.mo = mo;
-    }
-
-    public static interface MatchObserver {
-
-        public void evalMatch(KWS.MatchList list);
-    }
-
-    public void setGroundtruth(KWS.GroundTruth ref) {
-        this.ref = ref;
-        calcTolerances();
-        if (useLineBaseline) {
-            setLineBaseline();
-        }
-        matchLists = null;
-    }
-
-    private void setLineBaseline() {
-        for (Page page : ref.getPages()) {
-            for (Line line : page.getLines()) {
-                Polygon baseline = line.getBaseline();
-                if (baseline == null) {
-                    continue;
-                }
-                for (List<Polygon> value : line.getKeyword2Baseline().values()) {
-                    for (int i = 0; i < value.size(); i++) {
-                        value.set(i, baseline);
-                    }
-                }
-            }
-        }
-    }
-
-    private void calcTolerances() {
-        for (Page page : ref.getPages()) {
-            List<KWS.Line> lineList = page.getLines();
-            Polygon[] lines = new Polygon[lineList.size()];
-            for (int i = 0; i < lineList.size(); i++) {
-                lines[i] = lineList.get(i).getBaseline();
-            }
-            double[] calcTols = aligner.calcTolerances(lines);
-            for (int i = 0; i < lineList.size(); i++) {
-                lineList.get(i).setTolerance(calcTols[i]);
-            }
-        }
-    }
-
-    private void calcMatchLists() {
-        if (matchLists == null) {
-            List<Pair<KWS.Word, KWS.Word>> l = alignWords(hypo.getKeywords(), ref);
-            LinkedList<KWS.MatchList> ml = new LinkedList<>();
-            HashMap<String, Page> refPagewise = new HashMap<>();
-            for (Page page : ref.getPages()) {
-                refPagewise.put(page.getPageID(), page);
-            }
-            for (Pair<KWS.Word, KWS.Word> pair : l) {
-                KWS.Word refs = pair.getSecond();
-                KWS.Word hypos = pair.getFirst();
-                KWS.MatchList matchList = new KWS.MatchList(hypos, refs, aligner, toleranceDefault, thresh);
-                if (mo != null) {
-                    mo.evalMatch(matchList);
-                }
-                ml.add(matchList);
-                LOG.trace("for keyword '{}' found {} gt and {} hyp", refs.getKeyWord(), refs.getPos().size(), hypos.getPos().size());
-            }
-            this.matchLists = ml;
-        }
-    }
-
-//    public String getStats() {
+    //    public String getStats() {
 //        if (meanStats == null && globalStats == null) {
 //            getGlobalMearsure();
 //            return globalStats.toString();
@@ -136,18 +55,13 @@ public class KWSEvaluationMeasure {
 //        } else {
 //            return meanStats.toString();
 //        }
-    public Map<IRankingMeasure.Measure, Double> getMeasure(IRankingMeasure.Measure... ms) {
-        return getMeasure(Arrays.asList(ms));
+    public static Map<IRankingMeasure.Measure, Double> getMeasure(KWS.Result hypo, KWS.GroundTruth ref, KeyWordMatcher matcher, IRankingMeasure.Measure... ms) {
+        return getMeasure(hypo, ref, matcher, Arrays.asList(ms));
     }
 //    }
 
-    public List<KWS.MatchList> getMatchList() {
-        calcMatchLists();
-        return matchLists;
-    }
-
-    public Map<IRankingMeasure.Measure, Double> getMeasure(Collection<IRankingMeasure.Measure> ms) {
-        calcMatchLists();
+    public static Map<IRankingMeasure.Measure, Double> getMeasure(KWS.Result hypo, KWS.GroundTruth ref, KeyWordMatcher matcher, Collection<IRankingMeasure.Measure> ms) {
+        List<KWS.MatchList> matchLists = getMatchList(hypo, ref, matcher);
         HashMap<IRankingMeasure.Measure, Double> ret = new HashMap<>();
         for (IRankingMeasure.Measure m : ms) {
             ret.put(m, m.getMethod().calcMeasure(matchLists));
@@ -155,8 +69,8 @@ public class KWSEvaluationMeasure {
         return ret;
     }
 
-    public Map<IRankingStatistic.Statistic, double[]> getStats(Collection<IRankingStatistic.Statistic> ss) {
-        calcMatchLists();
+    public static Map<IRankingStatistic.Statistic, double[]> getStats(KWS.Result hypo, KWS.GroundTruth ref, KeyWordMatcher matcher, Collection<IRankingStatistic.Statistic> ss) {
+        List<KWS.MatchList> matchLists = getMatchList(hypo, ref, matcher);
         HashMap<IRankingStatistic.Statistic, double[]> ret = new HashMap<>();
         for (IRankingStatistic.Statistic s : ss) {
             ret.put(s, s.getMethod().calcStatistic(matchLists));
@@ -165,9 +79,33 @@ public class KWSEvaluationMeasure {
 
     }
 
-    private List<Pair<KWS.Word, KWS.Word>> alignWords(Set<Word> keywords_hypo, GroundTruth keywords_ref) {
-        HashMap<String, KWS.Word> wordsRef = generateMap(keywords_ref);
+    static List<KWS.MatchList> getMatchList(KWS.Result hypo, KWS.GroundTruth ref, KeyWordMatcher matcher) {
+        List<Pair<KWS.Word, KWS.Word>> kewordPair = alignWords(hypo.getKeywords(), ref);
+        LinkedList<KWS.MatchList> matchLists = new LinkedList<>();
+//        HashMap<String, Page> refPagewise = new HashMap<>();
+//        for (Page page : ref.getPages()) {
+//            refPagewise.put(page.getPageID(), page);
+//        }
+        for (Pair<KWS.Word, KWS.Word> pair : kewordPair) {
+            KWS.Word refs = pair.getSecond();
+            KWS.Word hypos = pair.getFirst();
+            KWS.MatchList matchList = new KWS.MatchList(hypos, refs, matcher);
+            matchLists.add(matchList);
+            LOG.trace("for keyword '{}' found {} gt and {} hyp", refs.getKeyWord(), refs.getPos().size(), hypos.getPos().size());
+        }
+        return matchLists;
+    }
+
+    /**
+     * aligns words. The result is a list of all reco-ref-pairs of words. the KWS.Word is never null, but the inner list could be empty.
+     *
+     * @param keywords_hypo
+     * @param keywords_ref
+     * @return
+     */
+    private static List<Pair<KWS.Word, KWS.Word>> alignWords(Set<Word> keywords_hypo, GroundTruth keywords_ref) {
         HashMap<String, KWS.Word> wordsHyp = generateMap(keywords_hypo);
+        HashMap<String, KWS.Word> wordsRef = generateMap(keywords_ref);
 
         Set<String> queryWords = new HashSet<>();
         queryWords.addAll(wordsHyp.keySet());
@@ -188,7 +126,7 @@ public class KWSEvaluationMeasure {
         return ret;
     }
 
-    private HashMap<String, KWS.Word> generateMap(Set<KWS.Word> keywords) {
+    private static HashMap<String, KWS.Word> generateMap(Set<KWS.Word> keywords) {
         HashMap<String, KWS.Word> words = new HashMap<>();
         for (KWS.Word kwsWord : keywords) {
             words.put(kwsWord.getKeyWord(), kwsWord);
@@ -196,39 +134,46 @@ public class KWSEvaluationMeasure {
         return words;
     }
 
-    private HashMap<String, KWS.Word> generateMap(GroundTruth keywords_ref) {
-        HashMap<String, KWS.Word> ret = new HashMap<>();
+    private static HashMap<String, KWS.Word> generateMap(GroundTruth keywords_ref) {
+        HashMap<String, KWS.Word> keyword2KWSWordMap = new HashMap<>();
         for (Page page : keywords_ref.getPages()) {
             for (Line line : page.getLines()) {
-                for (Map.Entry<String, List<Polygon>> entry : line.getKeyword2Baseline().entrySet()) {
-                    KWS.Word word = ret.get(entry.getKey());
+                for (String keyword : line.getKeyword2Baseline().keySet()) {
+                    List<Polygon> baselines = line.getKeyword2Baseline().get(keyword);
+                    List<Polygon> polys = line.getKeyword2Polygons().get(keyword);
+                    KWS.Word word = keyword2KWSWordMap.get(keyword);
                     if (word == null) {
-                        word = new Word(entry.getKey());
-                        ret.put(entry.getKey(), word);
+                        word = new Word(keyword);
+                        keyword2KWSWordMap.put(keyword, word);
                     }
-                    for (Polygon polygon : entry.getValue()) {
-                        KWS.Entry ent = new KWS.Entry(Double.NaN, null, polygon, page.getPageID());
+                    for (int i = 0; i < baselines.size(); i++) {
+                        KWS.Entry ent = new KWS.Entry(
+                                Double.NaN,
+                                line.getLineID(),
+                                page.getPageID(),
+                                baselines.get(i),
+                                polys == null ? null : polys.get(i));
                         ent.setParentLine(line);
                         word.add(ent);
                     }
                 }
             }
         }
-        LOG.info("groundtruth map has {} keywords", ret.size());
-        return ret;
+        LOG.info("groundtruth map has {} keywords", keyword2KWSWordMap.size());
+        return keyword2KWSWordMap;
     }
 
-    public static void main(String[] args) {
-        GroundTruth gt = new GroundTruth();
-        Page page = new Page("page1");
-        Line line = new Line("");
-        line.addKeyword("AA", PolygonUtil.string2Polygon("0,0 1,1"));
-        line.addKeyword("AA", PolygonUtil.string2Polygon("0,0 2,2"));
-        line.addKeyword("BB", PolygonUtil.string2Polygon("1,1 2,2"));
-        page.addLine(line);
-        gt.addPages(page);
-        Gson gson = new GsonBuilder().excludeFieldsWithoutExposeAnnotation().setPrettyPrinting().create();
-        System.out.println(gson.toJson(gt));
-
-    }
+//    public static void main(String[] args) {
+//        GroundTruth gt = new GroundTruth();
+//        Page page = new Page("page1");
+//        Line line = new Line("", null, null);
+//        line.addKeyword("AA", PolygonUtil.string2Polygon("0,0 1,1"), null);
+//        line.addKeyword("AA", PolygonUtil.string2Polygon("0,0 2,2"), null);
+//        line.addKeyword("BB", PolygonUtil.string2Polygon("1,1 2,2"), null);
+//        page.addLine(line);
+//        gt.addPages(page);
+//        Gson gson = new GsonBuilder().excludeFieldsWithoutExposeAnnotation().setPrettyPrinting().create();
+//        System.out.println(gson.toJson(gt));
+//
+//    }
 }

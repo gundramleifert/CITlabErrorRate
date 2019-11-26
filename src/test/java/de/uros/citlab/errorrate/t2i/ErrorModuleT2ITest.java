@@ -35,6 +35,11 @@ public class ErrorModuleT2ITest {
             public Polygon getBaseline() {
                 return getPoly(xMin, xMax, y);
             }
+
+            @Override
+            public String getId() {
+                return "??";
+            }
         };
     }
 
@@ -67,7 +72,7 @@ public class ErrorModuleT2ITest {
         testcase(Arrays.asList(ref1, ref2), Arrays.asList(ref4),
                 ref1.getText().length() + ref1.getText().length() + 1,
                 ref2.getText().length(), 0);
-        testcase(Arrays.asList(ref4),Arrays.asList(ref1, ref2),
+        testcase(Arrays.asList(ref4), Arrays.asList(ref1, ref2),
                 ref1.getText().length() + 1,
                 ref2.getText().length(), 0);
 
