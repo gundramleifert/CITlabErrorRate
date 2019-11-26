@@ -64,10 +64,11 @@ public class AveragePrecisionTest {
         int n = 100;
         LinkedList<Match> matches = new LinkedList<>();
         for (int i = n - 1; i >= 0; i--) {
+            KWS.Entry entry = new KWS.Entry(n - i, "id" + i, "id" + i, null, null);
             if (i < n * corrRatio) {
-                matches.add(new Match(KWS.Type.TRUE_POSITIVE, n - i, null, null, "", ""));
+                matches.add(new Match(KWS.Type.TRUE_POSITIVE, n - i, null, entry,entry));
             } else {
-                matches.add(new Match(KWS.Type.FALSE_POSITIVE, n - i, null, null, "", ""));
+                matches.add(new Match(KWS.Type.FALSE_POSITIVE, n - i, null, entry,null));
             }
         }
         MatchList matchlist = new MatchList(matches);

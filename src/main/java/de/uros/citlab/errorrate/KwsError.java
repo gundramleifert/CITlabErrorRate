@@ -45,7 +45,7 @@ public class KwsError {
 
     private static final Logger LOG = Logger.getLogger(KwsError.class.getName());
     private final Options options = new Options();
-    public final KWSEvaluationMeasure evaluationMeasure = new KWSEvaluationMeasure(new BaseLineAligner());
+    public final KWSEvaluationMeasure evaluationMeasure = new KWSEvaluationMeasure(new KWSEvaluationMeasure.BaseLineKeyWordMatcher(0.0001));
 
     public KwsError() {
         options.addOption("h", "help", false, "show this help");
@@ -217,9 +217,7 @@ public class KwsError {
             } else {
                 m.addAll(Arrays.asList(IRankingMeasure.Measure.values()));
             }
-            evaluationMeasure.setGroundtruth(gt);
-            evaluationMeasure.setResults(hyp);
-            Map<IRankingMeasure.Measure, Double> measure = evaluationMeasure.getMeasure(m);
+            Map<IRankingMeasure.Measure, Double> measure = evaluationMeasure.getMeasure(hyp,gt,m);
             if (cmd.hasOption('d') || cmd.hasOption('s')) {
                 StringBuilder sb = new StringBuilder();
                 if (measure.containsKey(IRankingMeasure.Measure.MAP)) {
@@ -229,7 +227,7 @@ public class KwsError {
                     sb.append(String.format("R-Prec=%.3f", measure.get(IRankingMeasure.Measure.R_PRECISION))).append(' ');
                 }
                 String name = sb.toString().trim();
-                Map<IRankingStatistic.Statistic, double[]> stats = evaluationMeasure.getStats(Arrays.asList(IRankingStatistic.Statistic.PR_CURVE));
+                Map<IRankingStatistic.Statistic, double[]> stats = evaluationMeasure.getStats(hyp,gt,Arrays.asList(IRankingStatistic.Statistic.PR_CURVE));
                 JavaPlot prCurve = PlotUtil.getPRCurve(stats.values().iterator().next(), name);
                 if (cmd.hasOption('d')) {
                     PlotUtil.getDefaultTerminal().accept(prCurve);

@@ -6,25 +6,17 @@
 package de.uros.citlab.errorrate.types;
 
 import com.google.gson.annotations.Expose;
-import de.uros.citlab.errorrate.aligner.IBaseLineAligner;
+import de.uros.citlab.errorrate.kws.KWSEvaluationMeasure;
 import de.uros.citlab.errorrate.util.ObjectCounter;
 import de.uros.citlab.errorrate.util.PolygonUtil;
-import java.awt.Polygon;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.awt.*;
+import java.util.List;
+import java.util.*;
+
 /**
- *
  * @author gundram
  */
 public class KWS {
@@ -37,24 +29,17 @@ public class KWS {
 //    private final IBaseLineAligner aligner;
 
         public MatchList(List<Match> matches) {
-//        this(aligner);
-            setMatches(matches);
-        }
-
-//    private MatchList(IBaseLineAligner aligner) {
-//        this.aligner = aligner;
-//    }
-        public MatchList(Word hypos, Word refs, IBaseLineAligner aligner, double toleranceDefault, double thresh) {
-//        this(aligner);
-            setMatches(match(hypos, refs, aligner, toleranceDefault, thresh));
-        }
-
-        private void setMatches(List<Match> matches) {
             this.matches = matches;
-            counter.reset();
-            for (Match matche : matches) {
-                counter.add(matche.type);
+            for (Match match : matches) {
+                counter.add(match.type);
             }
+        }
+
+        //    private MatchList(IBaseLineAligner matcher) {
+//        this.matcher = matcher;
+//    }
+        public MatchList(Word hypos, Word refs, KWSEvaluationMeasure.KeyWordMatcher matcher) {
+            this(match(hypos, refs, matcher));
         }
 
         private int getCount(Type type) {
@@ -68,98 +53,73 @@ public class KWS {
         public int getHypSize() {
             return getCount(Type.TRUE_POSITIVE) + getCount(Type.FALSE_POSITIVE);
         }
-//
-//    public IBaseLineAligner getAligner() {
-//        return aligner;
-//    }
 
-        private List<Polygon> getPolys(List<KWS.Entry> entries) {
-            List<Polygon> res = new LinkedList<>();
-            for (KWS.Entry entry : entries) {
-                res.add(entry.getBaseLineKeyword());
+        private static LinkedList<Match> getMatchList(String word, List<KWS.Entry> gts, List<KWS.Entry> hyps, KWSEvaluationMeasure.KeyWordMatcher matcher) {
+            LinkedList<Match> intermediate = new LinkedList<>();
+            if (gts != null && !gts.isEmpty() && hyps != null && !hyps.isEmpty()) {
+                //maybe sum matches between lines
+                for (Entry aGT : gts) {
+                    for (Entry aHYP : hyps) {
+                        double matchesConfidence = matcher.matches(aHYP, aGT);
+                        if (matchesConfidence > 0.0) {
+                            intermediate.add(new Match(Type.TRUE_POSITIVE, matchesConfidence, word, aHYP, aGT));
+                        }
+                    }
+                }
+                //sort by confidence
+                intermediate.sort((o1, o2) -> Double.compare(o2.getMatchConf(), o1.getMatchConf()));
+            }
+
+            //ensure, that each gt and hyp can only be matched once
+            LinkedList<Match> res = new LinkedList<>();
+            Set<Entry> gtsRemain = new LinkedHashSet<>();
+            if (gts != null) {
+                gtsRemain.addAll(gts);
+            }
+            Set<Entry> hypsRemain = new LinkedHashSet<>();
+            if (hyps != null) {
+                hypsRemain.addAll(hyps);
+            }
+            while (!intermediate.isEmpty()) {
+                Match first = intermediate.getFirst();
+                Entry gt = first.getGT();
+                Entry hyp = first.getHyp();
+                gtsRemain.remove(gt);
+                hypsRemain.remove(hyp);
+                res.add(first);
+                intermediate.removeIf(match -> match.getHyp() == first.getHyp() || match.getGT() == first.getGT());
+            }
+            for (Entry entry : gtsRemain) {
+                res.add(new Match(Type.FALSE_NEGATIVE, Double.NaN, word, null, entry));
+            }
+            for (Entry entry : hypsRemain) {
+                res.add(new Match(Type.FALSE_POSITIVE, Double.NaN, word, entry, null));
             }
             return res;
         }
 
-        private List<Match> match(Word hypos, Word refs, IBaseLineAligner aligner, double toleranceDefault, double thresh) {
+
+        private static final List<Match> match(Word hypos, Word refs, KWSEvaluationMeasure.KeyWordMatcher matcher) {
 
             String keyWord = hypos.getKeyWord();
 
             HashMap<String, List<KWS.Entry>> page2PolyHypos = generatePloys(hypos);
             HashMap<String, List<KWS.Entry>> page2PolyRefs = generatePloys(refs);
-            HashMap<String, List<Double>> page2Tolerance = getTolerances(refs);
+//            HashMap<String, List<Double>> page2Tolerance = getTolerances(refs);
 //        HashMap<String, List<Polygon>> page2AllBaselines = getAllLines(ref);
             LinkedList<Match> ret = new LinkedList<>();
 
-            Set<String> pages = new HashSet<String>(page2PolyRefs.keySet());
+            //collect all pageIDs from hypos and refs
+            Set<String> pages = new HashSet<>(page2PolyRefs.keySet());
             pages.addAll(page2PolyHypos.keySet());
 
+            //iterate over all pages
             for (String pageID : pages) {
 //            List<Polygon> allLines = page2AllBaselines.get(pageID);
                 List<KWS.Entry> polyHypos = page2PolyHypos.get(pageID);
                 List<KWS.Entry> polyRefs = page2PolyRefs.get(pageID);
-                List<Double> toleranceRefs = page2Tolerance.get(pageID);
-                if (polyHypos == null) {
-                    for (KWS.Entry polyRef : polyRefs) {
-                        Match kwsMatch = new Match(Type.FALSE_NEGATIVE, Double.NEGATIVE_INFINITY, polyRef.getBaseLineKeyword(), polyRef.getBaseLineLine(), pageID, keyWord);
-                        ret.add(kwsMatch);
-                    }
-                    continue;
-                }
-                if (polyRefs == null) {
-                    for (KWS.Entry polyHypo : polyHypos) {
-                        Match kwsMatch = new Match(Type.FALSE_POSITIVE, polyHypo.getConf(), polyHypo.getBaseLineKeyword(), null, pageID, keyWord);
-                        ret.add(kwsMatch);
-                    }
-                    continue;
-                }
-                double[] tolerancesVec = new double[toleranceRefs.size()];
-                for (int i = 0; i < tolerancesVec.length; i++) {
-                    Double d = toleranceRefs.get(i);
-                    if (d == null || Double.isNaN(d) || Double.isInfinite(d)) {
-                        tolerancesVec[i] = toleranceDefault;
-                    } else {
-                        tolerancesVec[i] = d;
-                    }
-                }
-
-                int[][] idcs = uniqueAlignment(
-                        aligner.getGTLists(
-                                getPolys(polyRefs).toArray(new Polygon[0]),
-                                tolerancesVec,
-                                getPolys(polyHypos).toArray(new Polygon[0]),
-                                thresh
-                        )
-                );
-
-                Set<Integer> idsNotFound = new HashSet<Integer>();
-                for (int i = 0; i < polyRefs.size(); i++) {
-                    idsNotFound.add(i);
-                }
-                for (int i = 0; i < idcs.length; i++) {
-                    int[] idsPerHypo = idcs[i];
-                    KWS.Entry hypo = polyHypos.get(i);
-                    if (idsPerHypo.length > 1) {
-                        LOG.error("two ground truch baselines match to one querry baseline. Schould not happen. Don't know what to do, so I ignore it!");
-                        continue;
-                    }
-                    if (idsPerHypo.length > 0) {
-//                    for (int id : idsPerHypo) {
-                        Entry gt = polyRefs.get(idsPerHypo[0]);
-                        idsNotFound.remove(idsPerHypo[0]);
-                        Match kwsMatch = new Match(Type.TRUE_POSITIVE, hypo.getConf(), hypo.getBaseLineKeyword(), gt.getBaseLineKeyword(), hypo.getImage(), keyWord);
-                        ret.add(kwsMatch);
-//                    }
-                    } else {
-                        Match kwsMatch = new Match(Type.FALSE_POSITIVE, hypo.getConf(), hypo.getBaseLineKeyword(), null, hypo.getImage(), keyWord);
-                        ret.add(kwsMatch);
-                    }
-                }
-                for (Integer integer : idsNotFound) {
-                    KWS.Entry get = polyRefs.get(integer);
-                    Match kwsMatch = new Match(KWS.Type.FALSE_NEGATIVE, Double.NEGATIVE_INFINITY, get.getBaseLineKeyword(), get.getBaseLineLine(), pageID, keyWord);
-                    ret.add(kwsMatch);
-                }
+//                List<Double> toleranceRefs = page2Tolerance.get(pageID);
+                ret.addAll(getMatchList(keyWord, polyRefs, polyHypos, matcher));
             }
             return ret;
 
@@ -173,39 +133,20 @@ public class KWS {
             HashMap<String, List<KWS.Entry>> ret = new HashMap<>();
             List<KWS.Entry> poss = kwsWord.getPos();
             Collections.sort(poss, new Comparator<KWS.Entry>() {
-                @Override
-                public int compare(KWS.Entry o1, KWS.Entry o2) {
-                    return -Double.compare(o1.getConf(), o2.getConf());
-                }
-            }
+                        @Override
+                        public int compare(KWS.Entry o1, KWS.Entry o2) {
+                            return -Double.compare(o1.getConf(), o2.getConf());
+                        }
+                    }
             );
             for (KWS.Entry pos : poss) {
-                String pageID = pos.getImage();
+                String pageID = pos.getPageID();
                 List<KWS.Entry> get = ret.get(pageID);
                 if (get == null) {
                     get = new LinkedList<>();
                     ret.put(pageID, get);
                 }
                 get.add(pos);
-
-            }
-            return ret;
-        }
-
-        private static HashMap<String, List<Double>> getTolerances(Word kwsWords) {
-            HashMap<String, List<Double>> ret = new HashMap<>();
-            for (KWS.Entry pos : kwsWords.getPos()) {
-                String pageID = pos.getImage();
-                List<Double> get = ret.get(pageID);
-                if (get == null) {
-                    get = new LinkedList<>();
-                    ret.put(pageID, get);
-                }
-                Line parentLine = pos.getParentLine();
-                if (parentLine == null) {
-                    throw new NullPointerException("for keywords no parent lines are set.");
-                }
-                get.add(parentLine.getTolerance());
 
             }
             return ret;
@@ -222,39 +163,6 @@ public class KWS {
             }
             return ret;
         }
-
-        /**
-         * Align indices uniquely!
-         *
-         * ToDo: can produce a false alignment. Das Problem: Aus der gtList wird
-         * nach und nach einfach der erstbeste Index entnommen. Das kann aber zu
-         * Problemen führen, wenn später ein anderer Match genau diesen schon
-         * entnommenen gtList-Index matched, den ignorierten aber nicht mehr.
-         * Dann müsste man eigentlich beim ersten Mal einen hinteren Index
-         * verwenden und den ersten für den späteren Match aufsparen. Nach
-         * hintengeschoben, weil kombinatorisch aufwendig.
-         *
-         * @param gtLists
-         * @return
-         */
-        private static int[][] uniqueAlignment(int[][] gtLists) {
-
-            int[][] ret = new int[gtLists.length][];
-            LinkedList<Integer> refIdcsUsed = new LinkedList<>();
-            loop:
-            for (int i = 0; i < gtLists.length; i++) {
-                int[] gtList = gtLists[i];
-                for (int j : gtList) {
-                    if (!refIdcsUsed.contains(j)) {
-                        ret[i] = new int[]{j};
-                        refIdcsUsed.add(j);
-                        continue loop;
-                    }
-                }
-                ret[i] = new int[0];
-            }
-            return ret;
-        }
     }
 
     public enum Type {
@@ -264,63 +172,57 @@ public class KWS {
     public static class Match implements Comparable<Match> {
 
         public final Type type;
-        public final double conf;
+        public final double matchConf;
 
-        private final Polygon hyp;
-        private final Polygon gt;
+        private final KWS.Entry hyp;
+        private final KWS.Entry gt;
 
-        private final String pageId;
 
-        private final String word;
+        private String word;
 
-//        public Match(Type type, Entry entry, String word) {
+        //        public Match(Type type, Entry entry, String word) {
 //            this(type, entry.getConf(), entry.getBaseLineKeyword(), entry.getBaseLineLine(), entry.getImage(), word);
 //        }
-        public Match(Type type, double conf, Polygon hyp, Polygon gt, String pageId, String word) {
+        public Match(Type type, double matchConf, String word, KWS.Entry hyp, KWS.Entry gt) {
             this.type = type;
-            this.conf = conf;
+            this.matchConf = matchConf;
+            this.word = word;
             this.hyp = hyp;
             this.gt = gt;
-            this.pageId = pageId;
-            this.word = word;
-        }
-
-//        public Match(Type type, double conf, Polygon poly, String pageId, String word) {
-//            this.type = type;
-//            this.conf = conf;
-//            this.hyp = poly;
-//            this.pageId = pageId;
-//            this.word = word;
-//
-//        }
-        public String getHyp() {
-            return word;
         }
 
         @Override
         public int compareTo(Match o) {
-            return Double.compare(o.conf, conf);
+            Entry otherHyp = o.getHyp();
+            Entry thisHyp = getHyp();
+            if (otherHyp == null) {
+                return thisHyp == null ? 0 : -1;
+            }
+            if (thisHyp == null) {
+                return 1;
+            }
+            return Double.compare(otherHyp.conf,thisHyp.conf);
+        }
+
+        public String getWord() {
+            return word;
         }
 
         @Override
         public String toString() {
-            return "KwsMatch{" + "pageId=" + pageId + ", word=" + word + ", type=" + type + ", conf=" + conf + '}';
+            return "KwsMatch{hyp=" + hyp + ",gt=" + gt + ", type=" + type + ", conf=" + matchConf + '}';
         }
 
-        public String getPageId() {
-            return pageId;
-        }
-
-        public Polygon getKeyword() {
-            return hyp;
-        }
-
-        public Polygon getGT() {
+        public KWS.Entry getGT() {
             return gt;
         }
 
-        public double getConf() {
-            return conf;
+        public KWS.Entry getHyp() {
+            return hyp;
+        }
+
+        public double getMatchConf() {
+            return matchConf;
         }
 
     }
@@ -329,57 +231,84 @@ public class KWS {
 
         @Expose
         private Map<String, List<String>> kws = new TreeMap<>();
+        @Expose
+        private Map<String, List<String>> kwsP = new TreeMap<>();
         private transient HashMap<String, List<Polygon>> kwsL = new HashMap<>();
+        private transient HashMap<String, List<Polygon>> kwsLP = new HashMap<>();
 
-//    @Expose
+        //    @Expose
 //    private Page parent;
         @Expose
-        private String bl;
+        private String bl = null;
         private transient Polygon blL;
-        private transient double tolerance;
 
-        public Line(Polygon baseline) {
-            this.blL = baseline;
-            this.bl = PolygonUtil.polygon2String(blL);
+        @Expose
+        private String poly = null;
+        private transient Polygon polyL;
+        //        private transient double tolerance;
+        @Expose
+        private String lineID;
+
+        public Line(String lineID, Polygon bl, Polygon poly) {
+            this.blL = bl;
+            this.polyL = poly;
+            this.lineID = lineID;
+            if (bl != null)
+                this.bl = PolygonUtil.polygon2String(bl);
+            if (poly != null)
+                this.poly = PolygonUtil.polygon2String(poly);
         }
 
-        public Line(String baseline) {
-            this.bl = baseline;
-            this.blL = PolygonUtil.string2Polygon(baseline);
+        public String getLineID() {
+            return lineID;
         }
+//        public double getTolerance() {
+//            return tolerance;
+//        }
+//
+//        public void setTolerance(double tolerance) {
+//            this.tolerance = tolerance;
+//        }
 
-        public double getTolerance() {
-            return tolerance;
-        }
-
-        public void setTolerance(double tolerance) {
-            this.tolerance = tolerance;
-        }
-
-//    public Line(Page parent) {
+        //    public Line(Page parent) {
 //        this.parent = parent;
 //    }
-        public void addKeyword(String word, Polygon polygon) {
+        public void addKeyword(String word, Polygon bl, Polygon poly) {
             List<Polygon> getL = kwsL.get(word);
             List<String> get = kws.get(word);
+            List<Polygon> getLP = kwsLP.get(word);
+            List<String> getP = kwsP.get(word);
             if (getL == null) {
                 getL = new LinkedList<>();
                 kwsL.put(word, getL);
                 get = new LinkedList<>();
                 kws.put(word, get);
+                getLP = new LinkedList<>();
+                kwsLP.put(word, getLP);
+                getP = new LinkedList<>();
+                kwsP.put(word, getP);
             }
-            getL.add(polygon);
-            get.add(PolygonUtil.polygon2String(polygon));
+            getL.add(bl);
+            if (bl != null)
+                get.add(PolygonUtil.polygon2String(bl));
+            getLP.add(poly);
+            if (poly != null)
+                getP.add(PolygonUtil.polygon2String(poly));
         }
 
         public void removeKeyword(String kw) {
             kwsL.remove(kw);
             kws.remove(kw);
+            kwsLP.remove(kw);
+            kwsP.remove(kw);
         }
 
         public HashMap<String, List<Polygon>> getKeyword2Baseline() {
             if (kwsL == null) {
                 kwsL = new HashMap<>();
+                if (kws == null) {
+                    return kwsL;
+                }
                 for (String keyword : kws.keySet()) {
                     LinkedList<Polygon> polyL = new LinkedList<>();
                     kwsL.put(keyword, polyL);
@@ -391,7 +320,24 @@ public class KWS {
             return kwsL;
         }
 
-//    public Page getParent() {
+        public HashMap<String, List<Polygon>> getKeyword2Polygons() {
+            if (kwsLP == null) {
+                kwsLP = new HashMap<>();
+                if (kwsP == null) {
+                    return kwsLP;
+                }
+                for (String keyword : kwsP.keySet()) {
+                    LinkedList<Polygon> polyLP = new LinkedList<>();
+                    kwsLP.put(keyword, polyLP);
+                    for (String poly : kwsP.get(keyword)) {
+                        polyLP.add(PolygonUtil.string2Polygon(poly));
+                    }
+                }
+            }
+            return kwsLP;
+        }
+
+        //    public Page getParent() {
 //        return parent;
 //    }
         public Polygon getBaseline() {
@@ -399,6 +345,13 @@ public class KWS {
                 blL = PolygonUtil.string2Polygon(bl);
             }
             return blL;
+        }
+
+        public Polygon getPolygon() {
+            if (polyL == null && poly != null) {
+                polyL = PolygonUtil.string2Polygon(poly);
+            }
+            return polyL;
         }
     }
 
@@ -444,10 +397,13 @@ public class KWS {
         @Expose
         private String bl;
         @Expose
+        private String poly;
+        @Expose
         private String line;
         @Expose
-        private String image = null;
-        private transient Polygon poly;
+        private String image;
+        private transient Polygon blL;
+        private transient Polygon polyL;
 
         private transient Line parentLine;
 
@@ -459,26 +415,38 @@ public class KWS {
             return parentLine;
         }
 
-        public Entry(double conf, String lineID, Polygon bl, String pageId) {
-            this(conf, lineID, array2String(bl.xpoints, bl.ypoints, bl.npoints), pageId);
-            this.poly = bl;
-        }
+//        public Entry(double conf, String lineID, Polygon bl, String pageId) {
+//            this(conf, lineID, array2String(bl.xpoints, bl.ypoints, bl.npoints), pageId);
+//            this.poly = bl;
+//        }
 
-        public Entry(double conf, String lineID, String bl, String pageId) {
+        public Entry(double conf, String lineID, String pageId, Polygon bl, Polygon poly) {
             this.conf = conf;
-            this.bl = bl;
-            this.image = pageId;
             this.line = lineID;
+            this.image = pageId;
+            this.blL = bl;
+            if (bl != null)
+                this.bl = PolygonUtil.polygon2String(bl);
+            this.polyL = poly;
+            if (poly != null)
+                this.poly = PolygonUtil.polygon2String(poly);
         }
 
-        public Polygon getBaseLineKeyword() {
-            if (poly == null) {
-                poly = string2Polygon(bl);
+        public Polygon getBaseLine() {
+            if (blL == null) {
+                blL = PolygonUtil.string2Polygon(bl);
             }
-            return poly;
+            return blL;
         }
 
-        public Polygon getBaseLineLine() {
+        public Polygon getPoly() {
+            if (polyL == null) {
+                polyL = PolygonUtil.string2Polygon(poly);
+            }
+            return polyL;
+        }
+
+        public Polygon getBaseLineOfTextLine() {
             return parentLine == null ? null : parentLine.getBaseline();
         }
 
@@ -486,10 +454,10 @@ public class KWS {
             return conf;
         }
 
-//    public String getId() {
+        //    public String getId() {
 //        return id;
 //    }
-        public String getImage() {
+        public String getPageID() {
             return image;
         }
 
@@ -503,33 +471,12 @@ public class KWS {
 
         @Override
         public String toString() {
-            return "Entry{" + "conf=" + conf + ", bl=" + bl + ", lineID=" + line + ", image=" + image + '}';
+            return "Entry{" + "conf=" + conf + ", bl=" + bl + ", lineID=" + line + ", pageID=" + image + '}';
         }
 
         @Override
         public int compareTo(Entry o) {
             return Double.compare(o.conf, conf);
-        }
-
-        private static Polygon string2Polygon(String string) {
-            String[] split = string.split(" ");
-            int size = split.length;
-            int[] x = new int[size];
-            int[] y = new int[size];
-            for (int i = 0; i < size; i++) {
-                String[] point = split[i].split(",");
-                x[i] = Integer.parseInt(point[0]);
-                y[i] = Integer.parseInt(point[1]);
-            }
-            return new Polygon(x, y, size);
-        }
-
-        private static String array2String(int[] x, int[] y, int n) {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < n; i++) {
-                sb.append(x[i]).append(',').append(y[i]).append(' ');
-            }
-            return sb.toString().trim();
         }
 
     }
@@ -546,7 +493,6 @@ public class KWS {
         }
 
         /**
-         *
          * @param pageId
          * @param lines
          */

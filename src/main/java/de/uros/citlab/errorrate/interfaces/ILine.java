@@ -18,4 +18,10 @@ public interface ILine {
      * @return
      */
     Polygon getBaseline();
+    /**
+     * ID which is unique within a page
+     *
+     * @return
+     */
+    String getId();
 }

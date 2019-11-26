@@ -10,8 +10,12 @@ import de.uros.citlab.errorrate.types.KWS;
 import de.uros.citlab.errorrate.util.ExtractUtil;
 import de.uros.citlab.errorrate.util.PolygonUtil;
 import de.uros.citlab.tokenizer.interfaces.ITokenizer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.awt.*;
 import java.io.File;
+import java.util.List;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -20,7 +24,7 @@ import java.util.regex.Pattern;
  * @author gundram
  */
 public class KeywordExtractor {
-
+    final static Logger LOG = LoggerFactory.getLogger(KeywordExtractor.class);
     private HashMap<String, Pattern> keywords = new LinkedHashMap<>();
     private final boolean part;
     private final boolean upper;
@@ -43,6 +47,14 @@ public class KeywordExtractor {
         List<ILine> getLines();
 
         String getID();
+    }
+
+    public interface Line {
+        String getText();
+
+        String getID();
+
+        Polygon getBaseline();
     }
 
     /**
@@ -169,22 +181,38 @@ public class KeywordExtractor {
 
     public KWS.GroundTruth getKeywordGroundTruth(PageIterator iterator, KeyWordProvider keyWordProvider) {
         List<KWS.Page> pages = new LinkedList<>();
-        iterator.getIterator().forEachRemaining(page -> pages.add(getKeywordsFromPage(page, keyWordProvider)));
+        iterator.getIterator().forEachRemaining(page -> pages.add(getKeyWordGroundTruthFromPage(page, keyWordProvider)));
         return new KWS.GroundTruth(pages);
     }
 
-    public KWS.Page getKeywordsFromPage(Page page, KeyWordProvider keyWordProvider) {
+    public KWS.Page getKeyWordGroundTruthFromPage(Page page, KeyWordProvider keyWordProvider) {
         List<ILine> lines = page.getLines();
         KWS.Page pageRes = new KWS.Page(page.getID());
+        Boolean simulateLine = null;
+        int i = 0;
         for (ILine line : lines) {
-            KWS.Line kwsLine = new KWS.Line(line.getBaseline());
+            if (simulateLine != null) {
+                if (simulateLine != (line.getBaseline() == null)) {
+                    throw new RuntimeException("only some text lines contain baselines.");
+                }
+            } else {
+                simulateLine = line.getBaseline() == null;
+                if (simulateLine) {
+                    LOG.info("simulate polygons for page {} because no polygons are given.", page.getID());
+                }
+            }
+            KWS.Line kwsLine = new KWS.Line(line.getId(), simulateLine
+                    ? new Polygon(new int[]{0, 1000}, new int[]{i, i}, 2)
+                    : line.getBaseline(), null);
+            i += 50;
             pageRes.addLine(kwsLine);
-            String textline = upper ? line.getText().toUpperCase() : line.getText();
-            Set<String> tokenize = keyWordProvider.getKeywords(textline);
-            for (String keyword : tokenize) {
-                double[][] keywordPosition = getKeywordPosition(keyword, textline);
+            String textLine = upper ? line.getText().toUpperCase() : line.getText();
+            Set<String> keywords = keyWordProvider.getKeywords(textLine);
+            for (String keyword : keywords) {
+                String keywordNormalized = upper ? keyword.toUpperCase() : keyword;
+                double[][] keywordPosition = getKeywordPosition(keywordNormalized, textLine);
                 for (double[] ds : keywordPosition) {
-                    kwsLine.addKeyword(keyword, PolygonUtil.getPolygonPart(line.getBaseline(), ds[0], ds[1]));
+                    kwsLine.addKeyword(keywordNormalized, PolygonUtil.getPolygonPart(line.getBaseline(), ds[0], ds[1]), null);
                 }
             }
         }

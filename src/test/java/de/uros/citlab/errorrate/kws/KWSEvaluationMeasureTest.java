@@ -7,7 +7,6 @@ package de.uros.citlab.errorrate.kws;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import de.uros.citlab.errorrate.aligner.BaseLineAligner;
 import de.uros.citlab.errorrate.kws.measures.IRankingMeasure;
 import de.uros.citlab.errorrate.kws.measures.IRankingStatistic;
 import de.uros.citlab.errorrate.types.KWS;
@@ -69,7 +68,7 @@ public class KWSEvaluationMeasureTest {
 //    @Test
     public void testGetGlobalMearsure() {
         System.out.println("getGlobalMearsure");
-        KWSEvaluationMeasure measure = new KWSEvaluationMeasure(new BaseLineAligner());
+        KWSEvaluationMeasure measure = new KWSEvaluationMeasure(new KWSEvaluationMeasure.BaseLineKeyWordMatcher());
 
         test(measure, 1.0, 0.0);
         test(measure, 0.8, 0.0);
@@ -111,7 +110,7 @@ public class KWSEvaluationMeasureTest {
                 totalcorr += numOfcorr;
                 totalFn += numOfFn;
                 Polygon p = new Polygon(new int[]{lineId * 50, lineId * 50}, new int[]{0, 100}, 2);
-                Line line = new Line(p);
+                Line line = new Line("line_"+lineId,p,null);
 
                 int cnt = -1;
                 Collections.shuffle(keyAndWord, rnd);
@@ -142,22 +141,20 @@ public class KWSEvaluationMeasureTest {
         Result res = new Result(new HashSet<>(words.values()));
         KWS.GroundTruth gt = new KWS.GroundTruth(pages);
 
-        measure.setGroundtruth(gt);
-        measure.setResults(res);
         LinkedList<IRankingMeasure.Measure> ms = new LinkedList<>();
         ms.add(IRankingMeasure.Measure.GAP);
 
-        double globalMearsure = measure.getMeasure(ms).get(IRankingMeasure.Measure.GAP);
+        double globalMearsure = measure.getMeasure(res,gt,ms).get(IRankingMeasure.Measure.GAP);
         assertEquals(corrRatio == 0.0 ? 1.0 : (double) totalcorr / (totalcorr + totalFn), globalMearsure, 1e-5);
         System.out.println("measure: " + globalMearsure);
     }
 
     private void addMatch(Word word, double conf, Polygon p, String pageId) {
-        word.add(new KWS.Entry(conf, "", p, pageId));
+        word.add(new KWS.Entry(conf, "", pageId, p, null));
     }
 
     private void addGtWord(Line line, String keyword, Polygon p, String pageId) {
-        line.addKeyword(keyword, p);
+        line.addKeyword(keyword, p,null);
     }
 
     private static final File folderGT = new File("src/test/resources/gt");
@@ -213,18 +210,16 @@ public class KWSEvaluationMeasureTest {
         List<String> readLines = FileUtils.readLines(new File("src/test/resources/kw.txt"));
 //        List<String> readLines = Arrays.asList("seyn");
         KeywordExtractor kwe = new KeywordExtractor();
-        KeywordExtractor.PageIterator pi = new KeywordExtractor.FileListPageIterator(getStringList(listGT),null);
+        KeywordExtractor.PageIterator pi = new KeywordExtractor.FileListPageIterator(getStringList(listGT), null);
         KeywordExtractor.KeyWordProvider kp = new KeywordExtractor.FixedKeyWordProvider(readLines);
 
         KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(pi, kp);
-        KWSEvaluationMeasure kem = new KWSEvaluationMeasure(new BaseLineAligner());
-        kem.setGroundtruth(keywordGroundTruth);
         LinkedList<KWS.MatchList> mls = new LinkedList<>();
+        KWSEvaluationMeasure kem = new KWSEvaluationMeasure(new KWSEvaluationMeasure.BaseLineKeyWordMatcher());
         for (int i : new int[]{50, 20, 10, 5}) {
             Result res = getResult(new File(String.format("src/test/resources/kws_htr/out_%02d.json", i)));
             res = filter(res, readLines);
-            kem.setResults(res);
-            mls.add(merge(kem.getMatchList()));
+            mls.add(merge(kem.getMatchList(res,keywordGroundTruth)));
         }
         for (int i = 1; i < mls.size(); i++) {
             if (mls.get(i - 1).matches.size() > mls.get(i).matches.size()) {
@@ -241,8 +236,8 @@ public class KWSEvaluationMeasureTest {
             for (int idxMatch = 0; idxMatch < listSmall.matches.size(); idxMatch++) {
                 KWS.Match matchSmallList = listSmall.matches.get(idxMatch);
                 KWS.Match matchLargeList = listLarge.matches.get(idxMatch);
-                if (matchSmallList.conf != matchLargeList.conf && matchSmallList.type != KWS.Type.FALSE_NEGATIVE) {
-                    assertTrue("confidences differ on idxMatch " + idxMatch + " and between indexes " + (idxList2 - 1) + " and " + idxList2 + ".", matchSmallList.conf == matchLargeList.conf
+                if (matchSmallList.matchConf != matchLargeList.matchConf && matchSmallList.type != KWS.Type.FALSE_NEGATIVE) {
+                    assertTrue("confidences differ on idxMatch " + idxMatch + " and between indexes " + (idxList2 - 1) + " and " + idxList2 + ".", matchSmallList.matchConf == matchLargeList.matchConf
                     );
                 }
             }
@@ -256,12 +251,11 @@ public class KWSEvaluationMeasureTest {
         List<String> readLines = FileUtils.readLines(new File("src/test/resources/kw.txt"));
 //        List<String> readLines = Arrays.asList("seyn");
         KeywordExtractor kwe = new KeywordExtractor();
-        KeywordExtractor.PageIterator pi = new KeywordExtractor.FileListPageIterator(getStringList(listGT),null);
+        KeywordExtractor.PageIterator pi = new KeywordExtractor.FileListPageIterator(getStringList(listGT), null);
         KeywordExtractor.KeyWordProvider kp = new KeywordExtractor.FixedKeyWordProvider(readLines);
 
         KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(pi, kp);
-        KWSEvaluationMeasure kem = new KWSEvaluationMeasure(new BaseLineAligner());
-        kem.setGroundtruth(keywordGroundTruth);
+        KWSEvaluationMeasure kem = new KWSEvaluationMeasure(new KWSEvaluationMeasure.BaseLineKeyWordMatcher());
         IRankingMeasure.Measure[] ms = new IRankingMeasure.Measure[]{
                 IRankingMeasure.Measure.GAP, IRankingMeasure.Measure.MAP,
                 IRankingMeasure.Measure.R_PRECISION, IRankingMeasure.Measure.PRECISION,
@@ -270,8 +264,7 @@ public class KWSEvaluationMeasureTest {
             for (int i : new int[]{5, 10, 20, 50}) {
                 Result res = getResult(new File(String.format("src/test/resources/kws_htr/out_%02d.json", i)));
                 res = filter(res, readLines);
-                kem.setResults(res);
-                Map<IRankingMeasure.Measure, Double> measure = kem.getMeasure(m);
+                Map<IRankingMeasure.Measure, Double> measure = kem.getMeasure(res,keywordGroundTruth,m);
                 System.out.println("#### i = " + i + " ####");
                 for (IRankingMeasure.Measure measure1 : measure.keySet()) {
                     System.out.println(measure1.toString() + " = " + measure.get(measure1));
@@ -298,8 +291,7 @@ public class KWSEvaluationMeasureTest {
         KeywordExtractor.KeyWordProvider kp = new KeywordExtractor.FixedKeyWordProvider(readLines);
 
         KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(pi, kp);
-        KWSEvaluationMeasure kem = new KWSEvaluationMeasure(new BaseLineAligner());
-        kem.setGroundtruth(keywordGroundTruth);
+        KWSEvaluationMeasure kem = new KWSEvaluationMeasure(new KWSEvaluationMeasure.BaseLineKeyWordMatcher());
         List<double[]> data = new LinkedList<>();
         String[] names = new String[8];
         int idx = 0;
@@ -309,9 +301,8 @@ public class KWSEvaluationMeasureTest {
             File filename = new File(String.format("src/test/resources/kws_htr/out_%02d.json", i));
             Result res = getResult(filename);
             res = filter(res, readLines);
-            kem.setResults(res);
             List<IRankingStatistic.Statistic> asList = Arrays.asList(IRankingStatistic.Statistic.W_PR_CURVE, IRankingStatistic.Statistic.PR_CURVE);
-            Map<IRankingStatistic.Statistic, double[]> stats = kem.getStats(asList);
+            Map<IRankingStatistic.Statistic, double[]> stats = kem.getStats(res,keywordGroundTruth,asList);
             System.out.println("#### i = " + i + " ####");
             for (IRankingStatistic.Statistic measure1 : stats.keySet()) {
                 System.out.println(measure1.toString() + "========================= " + Arrays.toString(stats.get(measure1)));

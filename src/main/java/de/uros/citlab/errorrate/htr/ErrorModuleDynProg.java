@@ -253,12 +253,6 @@ public class ErrorModuleDynProg implements IErrorModule {
         }
     }
 
-    public interface Line {
-        String getText();
-
-        Polygon getPolygon();
-    }
-
     private static class RecoRef {
 
         private String[] recos;
