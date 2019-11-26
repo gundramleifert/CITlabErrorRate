@@ -1,6 +1,7 @@
 package de.uros.citlab.errorrate.util;
 
 import de.uros.citlab.errorrate.kws.KeywordExtractor;
+import de.uros.citlab.errorrate.kws.QueryConfig;
 import de.uros.citlab.errorrate.types.KWS;
 import de.uros.citlab.tokenizer.interfaces.ITokenizer;
 import org.apache.commons.math3.util.Pair;
@@ -19,67 +20,27 @@ import java.util.Map;
 public class KwsUtil {
 
     private static Logger LOG = LoggerFactory.getLogger(KwsUtil.class);
-    //        @ParamAnnotation(descr="folder with xml-files")
-    private String xml_in;
 
-    //        @ParamAnnotation(descr="folder with image-files (if empty use index of xml-files")
-    private String img_in;
 
-    //        @ParamAnnotation(descr="path to output groundtruth file")
-    private String o;
-
-    //        @ParamAnnotation(descr="path to input query file (if empty, take all keywords from xml-file")
-    private String q_in;
-
-    //        @ParamAnnotation(descr="path to output query file (if empty, no query file saved")
-    private String q_out;
-
-    //        @ParamAnnotation(descr="minimal length of keyword")
-    private int minlen;
-
-    //        @ParamAnnotation(descr="maximal length of keyword")
-    private int maxlen;
-
-    //        @ParamAnnotation(descr="minimal occurance of keyword")
-    private int minocc;
-
-    //        @ParamAnnotation(descr="maximal occurance of keyword (<0 for any)")
-    private int maxocc;
-
-    //        @ParamAnnotation(descr="take only apha-channels (ignore numerical)")
-    private boolean alpha;
-
-    //        @ParamAnnotation(descr="make everything upper")
-    private boolean upper;
-
-    //        @ParamAnnotation(descr="find keyword also as part of longer words (substring)")
-    private boolean part;
-
-    public KwsUtil(int minlen, int maxlen, int minocc, int maxocc, boolean alpha, boolean upper, boolean part) {
-        this.minlen = minlen;
-        this.maxlen = maxlen;
-        this.minocc = minocc;
-        this.maxocc = maxocc;
-        this.alpha = alpha;
-        this.upper = upper;
-        this.part = part;
-    }
-
-    public KwsUtil() {
-        this(1, -1, 1, -1, false, false, false);
-    }
-
-    public class QueryAndResult {
+    public static class QueryAndResult {
         public QueryAndResult(Collection<String> query, KWS.GroundTruth result) {
             this.query = query;
             this.result = result;
         }
 
-        public Collection<String> query;
-        public KWS.GroundTruth result;
+        public Collection<String> getQuery() {
+            return query;
+        }
+
+        public KWS.GroundTruth getResult() {
+            return result;
+        }
+
+        private Collection<String> query;
+        private KWS.GroundTruth result;
     }
 
-    public ObjectCounter<String> getCandidates(KWS.GroundTruth keywordGroundTruth) {
+    public static ObjectCounter<String> getCandidates(KWS.GroundTruth keywordGroundTruth) {
         ObjectCounter<String> queryCandidates = new ObjectCounter<>();
         for (KWS.Page page : keywordGroundTruth.getPages()) {
             for (KWS.Line line : page.getLines()) {
@@ -100,8 +61,8 @@ public class KwsUtil {
         return true;
     }
 
-    public QueryAndResult createKwsQueryAndResult(KeywordExtractor.PageIterator pi, ITokenizer tokenizer) {
-        KeywordExtractor kwe = new KeywordExtractor(false, upper);
+    public static List<String> createKwsQuery(KeywordExtractor.PageIterator pi, ITokenizer tokenizer, QueryConfig config) {
+        KeywordExtractor kwe = new KeywordExtractor();
 
         //count words in pages, that are provided
         KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(pi, new KeywordExtractor.TokenKeyWordProvider(tokenizer));
@@ -109,33 +70,34 @@ public class KwsUtil {
         //filter from all possible queries all which match the constraint
         List<Pair<String, Long>> resultOccurrence = queryCandidates.getResultOccurrence();
         resultOccurrence.removeIf(entry ->
-                        entry.getFirst().length() < minlen
-                                || (maxlen > 0 && entry.getFirst().length() > maxlen)
-                                || (alpha && !isAlpha(entry.getFirst()))
+                        entry.getFirst().length() < config.getMinLen()
+                                || (config.getMaxLen() > 0 && entry.getFirst().length() > config.getMaxLen())
+                                || (config.isAlpha() && !isAlpha(entry.getFirst()))
 //                        skip this, because specific tokens can match in second part (e.g. part=true)
 //                        || entry.getSecond() < minocc
 //                        || (maxocc > 0 && entry.getFirst().length() > maxocc)
         );
         //extract queries
-        final LinkedList<String> queries = new LinkedList<>();
+        LinkedList<String> queries = new LinkedList<>();
         resultOccurrence.forEach(stringLongPair -> queries.add(stringLongPair.getFirst()));
         LOG.debug("in first round take {}/{} queries", queries.size(), resultOccurrence.size());
-        return createKwsResult(pi, queries);
+        return queries;
+//        return createKwsResult(pi, queries,config);
     }
 
-    public QueryAndResult createKwsResult(KeywordExtractor.PageIterator pi, Collection<String> query) {
-        KeywordExtractor kwe = new KeywordExtractor(part, upper);
+    public static QueryAndResult createKwsResult(KeywordExtractor.PageIterator pi, Collection<String> query, QueryConfig config) {
+        KeywordExtractor kwe = new KeywordExtractor(config);
         KeywordExtractor.KeyWordProvider wkp = new KeywordExtractor.FixedKeyWordProvider(query);
         KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(pi, wkp);
         ObjectCounter<String> queryCandidates = getCandidates(keywordGroundTruth);
         //filter from all possible queries all which match the constraint
         List<Pair<String, Long>> resultOccurrence = queryCandidates.getResultOccurrence();
         resultOccurrence.removeIf(entry ->
-                entry.getFirst().length() < minlen
-                        || (maxlen > 0 && entry.getFirst().length() > maxlen)
-                        || (alpha && !isAlpha(entry.getFirst()))
-                        || entry.getSecond() < minocc
-                        || (maxocc > 0 && entry.getFirst().length() > maxocc)
+                entry.getFirst().length() < config.getMinLen()
+                        || (config.getMaxLen() > 0 && entry.getFirst().length() > config.getMaxLen())
+                        || (config.isAlpha() && !isAlpha(entry.getFirst()))
+                        || entry.getSecond() < config.getMinOcc()
+                        || (config.getMaxOcc() > 0 && entry.getFirst().length() > config.getMaxOcc())
         );
 
         final LinkedList<String> queries = new LinkedList<>();

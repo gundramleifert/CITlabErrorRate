@@ -18,6 +18,16 @@ public interface ILine {
      * @return
      */
     Polygon getBaseline();
+
+    /**
+     * polygon which returns the surrounding polyon (or bounding box) of a line
+     *
+     * @return
+     */
+    default Polygon getPolygon() {
+        return null;
+    }
+
     /**
      * ID which is unique within a page
      *

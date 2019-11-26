@@ -26,8 +26,7 @@ import java.util.regex.Pattern;
 public class KeywordExtractor {
     final static Logger LOG = LoggerFactory.getLogger(KeywordExtractor.class);
     private HashMap<String, Pattern> keywords = new LinkedHashMap<>();
-    private final boolean part;
-    private final boolean upper;
+    QueryConfig config;
     private int maxSize = 1000;
     private final String prefix = "([^\\pL\\pN\\pM\\p{Cs}\\p{Co}])";
     private final String suffix = "([^\\pL\\pN\\pM\\p{Cs}\\p{Co}])";
@@ -35,26 +34,17 @@ public class KeywordExtractor {
     private final Pattern suffixPattern = Pattern.compile(suffix + "$");
 
     public KeywordExtractor() {
-        this(false, false);
+        this(new QueryConfig.Builder(false, false).build());
     }
 
-    public KeywordExtractor(boolean part, boolean upper) {
-        this.part = part;
-        this.upper = upper;
+    public KeywordExtractor(QueryConfig config) {
+        this.config = config;
     }
 
     public interface Page {
         List<ILine> getLines();
 
         String getID();
-    }
-
-    public interface Line {
-        String getText();
-
-        String getID();
-
-        Polygon getBaseline();
     }
 
     /**
@@ -143,12 +133,12 @@ public class KeywordExtractor {
     }
 
     private Pattern getPattern(String kw) {
-        if (upper) {
+        if (config.isUpper()) {
             kw = kw.toUpperCase();
         }
         Pattern res = keywords.get(kw);
         if (res == null) {
-            res = part ? Pattern.compile(kw) : Pattern.compile("((^)|" + prefix + ")" + kw + "(($)|" + suffix + ")");
+            res = config.isPart() ? Pattern.compile(kw) : Pattern.compile("((^)|" + prefix + ")" + kw + "(($)|" + suffix + ")");
             if (keywords.size() > maxSize) {
                 keywords.clear();
             }
@@ -158,7 +148,7 @@ public class KeywordExtractor {
     }
 
     public double[][] getKeywordPosition(String keyword, String line) {
-        if (upper) {
+        if (config.isUpper()) {
             line = line.toUpperCase();
         }
         Pattern p = getPattern(keyword);
@@ -206,10 +196,10 @@ public class KeywordExtractor {
                     : line.getBaseline(), null);
             i += 50;
             pageRes.addLine(kwsLine);
-            String textLine = upper ? line.getText().toUpperCase() : line.getText();
+            String textLine = config.isUpper() ? line.getText().toUpperCase() : line.getText();
             Set<String> keywords = keyWordProvider.getKeywords(textLine);
             for (String keyword : keywords) {
-                String keywordNormalized = upper ? keyword.toUpperCase() : keyword;
+                String keywordNormalized = config.isUpper() ? keyword.toUpperCase() : keyword;
                 double[][] keywordPosition = getKeywordPosition(keywordNormalized, textLine);
                 for (double[] ds : keywordPosition) {
                     kwsLine.addKeyword(keywordNormalized, PolygonUtil.getPolygonPart(line.getBaseline(), ds[0], ds[1]), null);

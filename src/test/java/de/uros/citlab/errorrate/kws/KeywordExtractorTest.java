@@ -93,7 +93,7 @@ public class KeywordExtractorTest {
     public void testGetKeywordPosition() {
         System.out.println("getKeywordPosition");
         KeywordExtractor instanceTrue = new KeywordExtractor();
-        KeywordExtractor instanceFalse = new KeywordExtractor(true, false);
+        KeywordExtractor instanceFalse = new KeywordExtractor(new QueryConfig.Builder(false, true).build());
         for (TestCase aCase : cases) {
             double[][] keywordPosition = instanceTrue.getKeywordPosition(aCase.keyword, aCase.line);
             for (double[] ds : keywordPosition) {
@@ -128,7 +128,7 @@ public class KeywordExtractorTest {
                         po.setParentLine(line);
                     }
                     for (Polygon position : positions) {
-                        kwsWord.add(new KWS.Entry(1.0, line.getLineID(), page.getPageID(), position, null));
+                        kwsWord.add(new KWS.Entry(1.0, line.getLineID(), pageID, position, null));
                     }
                 }
             }
@@ -159,7 +159,7 @@ public class KeywordExtractorTest {
         LinkedList<IRankingMeasure.Measure> measures = new LinkedList<>();
         measures.add(IRankingMeasure.Measure.GAP);
         measures.add(IRankingMeasure.Measure.MAP);
-        Map<IRankingMeasure.Measure, Double> measure = KWSEvaluationMeasure.getMeasure(keyWordErr,keywordGroundTruth,KeyWordMatchers.nearBaselines(),measures);
+        Map<IRankingMeasure.Measure, Double> measure = KWSEvaluationMeasure.getMeasure(keyWordErr, keywordGroundTruth, KeyWordMatchers.nearBaselines(), measures);
         System.out.println(measure.get(IRankingMeasure.Measure.GAP));
         System.out.println(measure.get(IRankingMeasure.Measure.MAP));
     }

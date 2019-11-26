@@ -22,8 +22,8 @@ import org.junit.Test;
 import java.awt.*;
 import java.io.File;
 import java.text.Normalizer;
-import java.util.List;
 import java.util.*;
+import java.util.List;
 
 /**
  * Here every one can add groundtruth (GT) and hypothesis (HYP) text. Then some
@@ -574,7 +574,6 @@ public class TestEnd2End {
             public Polygon getBaseline() {
                 return getPoly(xMin, xMax, y);
             }
-
             @Override
             public String getId() {
                 return "??";

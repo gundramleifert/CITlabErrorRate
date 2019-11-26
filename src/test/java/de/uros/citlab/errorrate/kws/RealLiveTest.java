@@ -50,6 +50,11 @@ public class RealLiveTest {
                                               }
 
                                               @Override
+                                              public Polygon getPolygon() {
+                                                  return null;
+                                              }
+
+                                              @Override
                                               public Polygon getBaseline() {
                                                   return polygon2;
                                               }

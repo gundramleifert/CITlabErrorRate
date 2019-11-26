@@ -1,6 +1,10 @@
 
 # Changelog
 
+# 7.1.0
+* update ILine with default implementation for getPolygon()
+* add new measure IRankingMeasure.Measure.AVERAGE_MATCHER_CONFIDENCE to calculate for example the average IoU over all true positive matches
+
 # 7.0.0
 * change KWS Measure and make it mor configurable
 

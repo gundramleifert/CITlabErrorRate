@@ -99,6 +99,7 @@ public class ExtractUtil {
                                 String text = line.getText();
                                 org.primaresearch.maths.geometry.Polygon baseline = ((TextLine) line).getBaseline();
                                 Polygon polygon = getPolygon(baseline);
+                                Polygon coord = getPolygon(((TextLine) line).getCoords());
                                 if (text == null) {
                                     LOG.warn("transciption is null for line id = {} and document {} - ignore line.", line.getId(), fileName);
                                     continue;
@@ -127,6 +128,11 @@ public class ExtractUtil {
                                     @Override
                                     public Polygon getBaseline() {
                                         return polygon;
+                                    }
+
+                                    @Override
+                                    public Polygon getPolygon() {
+                                        return coord;
                                     }
 
                                     @Override
