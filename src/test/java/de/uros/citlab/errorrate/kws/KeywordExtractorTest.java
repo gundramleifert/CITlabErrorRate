@@ -95,11 +95,11 @@ public class KeywordExtractorTest {
         KeywordExtractor instanceTrue = new KeywordExtractor();
         KeywordExtractor instanceFalse = new KeywordExtractor(new QueryConfig.Builder(false, true).build());
         for (TestCase aCase : cases) {
-            double[][] keywordPosition = instanceTrue.getKeywordPosition(aCase.keyword, aCase.line);
+            double[][] keywordPosition = instanceTrue.getKeywordPositions(aCase.keyword, aCase.line);
             for (double[] ds : keywordPosition) {
                 Assert.assertEquals(aCase.keyword.length(), (ds[1] - ds[0]) * aCase.line.length(), 1e-4);
             }
-            double[][] keywordPosition2 = instanceFalse.getKeywordPosition(aCase.keyword, aCase.line);
+            double[][] keywordPosition2 = instanceFalse.getKeywordPositions(aCase.keyword, aCase.line);
             for (double[] ds : keywordPosition2) {
                 Assert.assertEquals(aCase.keyword.length(), (ds[1] - ds[0]) * aCase.line.length(), 1e-4);
             }
@@ -153,9 +153,8 @@ public class KeywordExtractorTest {
         String[] idListBot = getStringList(listBot);
         KeywordExtractor.PageIterator pi = new KeywordExtractor.FileListPageIterator(idListGT);
         KeywordExtractor.PageIterator pibot = new KeywordExtractor.FileListPageIterator(idListBot);
-        KeywordExtractor.KeyWordProvider kp = new KeywordExtractor.FixedKeyWordProvider(keywords);
-        KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(pi, kp);
-        KWS.Result keyWordErr = GT2Hyp(kwe.getKeywordGroundTruth(pibot, kp));
+        KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(pi, keywords);
+        KWS.Result keyWordErr = GT2Hyp(kwe.getKeywordGroundTruth(pibot, keywords));
         LinkedList<IRankingMeasure.Measure> measures = new LinkedList<>();
         measures.add(IRankingMeasure.Measure.GAP);
         measures.add(IRankingMeasure.Measure.MAP);

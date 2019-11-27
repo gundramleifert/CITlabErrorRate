@@ -124,12 +124,7 @@ public class RealLiveTest {
                         return pages.iterator();
                     }
                 },
-                new KeywordExtractor.KeyWordProvider() {
-                    @Override
-                    public Set<String> getKeywords(String textLine) {
-                        return queries;
-                    }
-                }
+                queries
         );
         KWS.Word word = new KWS.Word("salat");
         word.add(new KWS.Entry(0.9, "ID_1", "pageID_1", null, polygon1));

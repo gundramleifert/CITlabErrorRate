@@ -210,9 +210,8 @@ public class KWSEvaluationMeasureTest {
 //        List<String> readLines = Arrays.asList("seyn");
         KeywordExtractor kwe = new KeywordExtractor();
         KeywordExtractor.PageIterator pi = new KeywordExtractor.FileListPageIterator(getStringList(listGT), null);
-        KeywordExtractor.KeyWordProvider kp = new KeywordExtractor.FixedKeyWordProvider(readLines);
 
-        KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(pi, kp);
+        KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(pi, readLines);
         LinkedList<KWS.MatchList> mls = new LinkedList<>();
         for (int i : new int[]{50, 20, 10, 5}) {
             Result res = getResult(new File(String.format("src/test/resources/kws_htr/out_%02d.json", i)));
@@ -250,9 +249,8 @@ public class KWSEvaluationMeasureTest {
 //        List<String> readLines = Arrays.asList("seyn");
         KeywordExtractor kwe = new KeywordExtractor();
         KeywordExtractor.PageIterator pi = new KeywordExtractor.FileListPageIterator(getStringList(listGT), null);
-        KeywordExtractor.KeyWordProvider kp = new KeywordExtractor.FixedKeyWordProvider(readLines);
 
-        KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(pi, kp);
+        KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(pi, readLines);
         IRankingMeasure.Measure[] ms = new IRankingMeasure.Measure[]{
                 IRankingMeasure.Measure.GAP, IRankingMeasure.Measure.MAP,
                 IRankingMeasure.Measure.R_PRECISION, IRankingMeasure.Measure.PRECISION,
@@ -282,12 +280,10 @@ public class KWSEvaluationMeasureTest {
     public void testStatistic() throws IOException {
         System.out.println("testStatistic");
         List<String> readLines = FileUtils.readLines(new File("src/test/resources/kw.txt"));
-//        List<String> readLines = Arrays.asList("sein");
         KeywordExtractor kwe = new KeywordExtractor();
         KeywordExtractor.PageIterator pi = new KeywordExtractor.FileListPageIterator(getStringList(listGT));
-        KeywordExtractor.KeyWordProvider kp = new KeywordExtractor.FixedKeyWordProvider(readLines);
 
-        KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(pi, kp);
+        KWS.GroundTruth keywordGroundTruth = kwe.getKeywordGroundTruth(pi, readLines);
         List<double[]> data = new LinkedList<>();
         String[] names = new String[8];
         int idx = 0;
