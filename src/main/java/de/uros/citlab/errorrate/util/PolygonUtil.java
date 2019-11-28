@@ -5,8 +5,7 @@
  */
 package de.uros.citlab.errorrate.util;
 
-import java.awt.Point;
-import java.awt.Polygon;
+import java.awt.*;
 
 /**
  *
@@ -14,7 +13,12 @@ import java.awt.Polygon;
  */
 public class PolygonUtil {
 
+    private static final String NO_POLY = "?";
+
     public static Polygon string2Polygon(String string) {
+        if (string.equals(NO_POLY)) {
+            return null;
+        }
         String[] split = string.split(" ");
         int size = split.length;
         int[] x = new int[size];
@@ -28,7 +32,11 @@ public class PolygonUtil {
     }
 
     public static String polygon2String(Polygon polygon) {
-        return array2String(polygon.xpoints, polygon.ypoints, polygon.npoints);
+        if (polygon == null || polygon.npoints == 0) {
+            return NO_POLY;
+        } else {
+            return array2String(polygon.xpoints, polygon.ypoints, polygon.npoints);
+        }
     }
 
     private static String array2String(int[] x, int[] y, int n) {

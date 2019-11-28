@@ -160,7 +160,7 @@ public class KeywordExtractor {
         if (!quoted.equals(keyword)) {
             LOG.debug("escape characters in keyword from '{}' to '{}'.", keyword, quoted);
         }
-        Pattern p = getPattern(quoted);
+        Pattern p = getPattern(keyword);
         Matcher matcher = p.matcher(line);
         int idx = 0;
         List<double[]> startEnd = new LinkedList<>();
@@ -204,7 +204,7 @@ public class KeywordExtractor {
                 String keywordNormalized = config.isUpper() ? keyword.toUpperCase() : keyword;
                 double[][] keywordPosition = getKeywordPositions(keywordNormalized, textLine);
                 for (double[] ds : keywordPosition) {
-                    kwsLine.addKeyword(keywordNormalized, PolygonUtil.getPolygonPart(line.getBaseline(), ds[0], ds[1]), null);
+                    kwsLine.addKeyword(keywordNormalized, line.getBaseline() == null ? null : PolygonUtil.getPolygonPart(line.getBaseline(), ds[0], ds[1]), null);
                 }
             }
         }

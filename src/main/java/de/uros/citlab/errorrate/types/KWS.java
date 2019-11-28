@@ -250,10 +250,8 @@ public class KWS {
             this.blL = bl;
             this.polyL = poly;
             this.lineID = lineID;
-            if (bl != null)
-                this.bl = PolygonUtil.polygon2String(bl);
-            if (poly != null)
-                this.poly = PolygonUtil.polygon2String(poly);
+            this.bl = PolygonUtil.polygon2String(bl);
+            this.poly = PolygonUtil.polygon2String(poly);
         }
 
         public String getLineID() {
@@ -286,11 +284,9 @@ public class KWS {
                 kwsP.put(word, getP);
             }
             getL.add(bl);
-            if (bl != null)
-                get.add(PolygonUtil.polygon2String(bl));
+            get.add(PolygonUtil.polygon2String(bl));
             getLP.add(poly);
-            if (poly != null)
-                getP.add(PolygonUtil.polygon2String(poly));
+            getP.add(PolygonUtil.polygon2String(poly));
         }
 
         public void removeKeyword(String kw) {
@@ -422,11 +418,9 @@ public class KWS {
             this.line = lineID;
             this.image = pageId;
             this.blL = bl;
-            if (bl != null)
-                this.bl = PolygonUtil.polygon2String(bl);
+            this.bl = PolygonUtil.polygon2String(bl);
             this.polyL = poly;
-            if (poly != null)
-                this.poly = PolygonUtil.polygon2String(poly);
+            this.poly = PolygonUtil.polygon2String(poly);
         }
 
         public Polygon getBaseLine() {

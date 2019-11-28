@@ -151,8 +151,8 @@ public class KWSEvaluationMeasure {
                                 Double.NaN,
                                 line.getLineID(),
                                 page.getPageID(),
-                                baselines.get(i),
-                                polys == null ? null : polys.get(i));
+                                baselines == null || baselines.isEmpty() ? null : baselines.get(i),
+                                polys==null || polys.isEmpty() ? null : polys.get(i));
                         ent.setParentLine(line);
                         word.add(ent);
                     }
