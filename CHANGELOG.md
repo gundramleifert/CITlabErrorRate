@@ -1,6 +1,9 @@
 
 # Changelog
 
+# 7.2.1
+* version fix to parent-pom 1.8
+
 # 7.1.1
 * minor bugfixes
 * move methods from KwsUtil to KeywordExtractor

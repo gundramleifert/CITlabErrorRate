@@ -24,6 +24,7 @@ public class KeyWordMatchers {
         return new BaseLineKeyWordMatcher();
     }
 
+
     public static KeyWordMatcher intersectionOverUnionBoundingBoxes() {
         return new IntersectionOverUnionBBMatcher();
     }

@@ -107,6 +107,7 @@ public class PathCalculatorGraph<Reco, Reference> {
 
         public int[] getSize(int[] actual);
     }
+
     public static class ImageExportDynMatViewer implements PathCalculatorGraph.DynMatViewer {
         private final File file;
 
@@ -159,6 +160,9 @@ public class PathCalculatorGraph<Reco, Reference> {
         boolean addNewEdge(DistanceSmall newDistance);
 
         boolean followPathsFromBestEdge(DistanceSmall bestDistance);
+
+        default void close() {
+        }
     }
 
     public static class DistanceSmall {
@@ -560,6 +564,9 @@ public class PathCalculatorGraph<Reco, Reference> {
                     mat = null;
                 }
                 LOG.debug(String.format("found count = %d, return with so far calculated dynProg.", cntEdges));
+                if (filter != null) {
+                    filter.close();
+                }
                 return distMat;
             }
 
@@ -600,8 +607,8 @@ public class PathCalculatorGraph<Reco, Reference> {
                 }
                 double diff = max - min;
                 for (IDistance<Reco, Reference> dist : distMat.getBestPath()) {
-                    int idxY=(int)Math.min(dist.getPoint()[0] / factorY, mat.length - 1);
-                    int idxX=(int)Math.min(dist.getPoint()[1] / factorX, mat[0].length - 1);
+                    int idxY = (int) Math.min(dist.getPoint()[0] / factorY, mat.length - 1);
+                    int idxX = (int) Math.min(dist.getPoint()[1] / factorX, mat[0].length - 1);
 
                     float val = mat[idxY][idxX];
                     val += diff * 0.5F;
@@ -613,6 +620,9 @@ public class PathCalculatorGraph<Reco, Reference> {
             }
             dynMatViewer.callbackEnd(mat);
             mat = null;
+        }
+        if (filter != null) {
+            filter.close();
         }
         return distMat;
 

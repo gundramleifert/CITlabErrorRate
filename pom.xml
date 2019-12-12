@@ -7,13 +7,13 @@
     <description>A tool for creating different error rates</description>
     <groupId>de.uros.citlab</groupId>
     <artifactId>errorrate</artifactId>
-    <version>7.1.2-SNAPSHOT</version>
+    <version>7.1.2</version>
     <packaging>jar</packaging>
 
     <parent>
         <groupId>de.uros.citlab</groupId>
         <artifactId>parent_pom</artifactId>
-        <version>1.7</version>
+        <version>1.8</version>
     </parent>
     <dependencies>
         <!--CITLAB ROSTOCK-->
@@ -81,6 +81,7 @@
         <dependency>
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest-core</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <repositories>
